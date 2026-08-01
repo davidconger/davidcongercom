@@ -1,0 +1,566 @@
+@charset "utf-8";
+
+/* ==========================================================================
+   davidconger.com — consolidated stylesheet
+
+   Replaces css/core.css, css/all.css, css/galleries.css and
+   catalog/catalog.css, which between them defined the same link colours three
+   times over and split closely-related rules across four files.
+
+   Selectors are intentionally unchanged so the existing markup keeps matching.
+   The visual design is preserved; what changes is that fixed pixel widths are
+   now fluid, so the site works on a phone.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Design tokens
+   -------------------------------------------------------------------------- */
+
+:root {
+	--dc-bg: #2a2a2a;
+	--dc-fg: #ffffff;
+	--dc-accent: #0066ff;
+	--dc-muted: #949494;
+	--dc-panel: #808080;
+	--dc-border: #ffffff;
+
+	--dc-font: Arial, Helvetica, sans-serif;
+	--dc-font-display: 'Hind', Arial, Helvetica, sans-serif;
+
+	--dc-gallery-max: 1300px;
+	--dc-prose-max: 700px;
+	--dc-feature-max: 640px;
+}
+
+/* --------------------------------------------------------------------------
+   Reset / base
+   -------------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	padding: 0 12px;
+	color: var(--dc-fg);
+	background-color: var(--dc-bg);
+	font-family: var(--dc-font);
+	text-align: center;
+	-webkit-text-size-adjust: 100%;
+}
+
+/* Legacy body class used by the gallery pages; it duplicated `body` verbatim. */
+.dcStandardBody {
+	color: var(--dc-fg);
+	background-color: var(--dc-bg);
+	font-family: var(--dc-font);
+	text-align: center;
+}
+
+/* No image should ever force horizontal scrolling. The archive pages carry
+   hard-coded width/height attributes (e.g. width="640"), which this overrides
+   on narrow screens while preserving aspect ratio. */
+img {
+	max-width: 100%;
+	height: auto;
+}
+
+/* Single definition of link colours. Previously repeated in core.css,
+   all.css, galleries.css and catalog.css, in three different combinations. */
+a {
+	color: var(--dc-fg);
+}
+
+a:visited,
+a:active {
+	color: var(--dc-fg);
+}
+
+a:hover {
+	color: var(--dc-accent);
+	text-decoration: underline;
+}
+
+a:focus-visible {
+	outline: 2px solid var(--dc-accent);
+	outline-offset: 2px;
+}
+
+hr {
+	border: 0;
+	border-top: 1px solid var(--dc-muted);
+	width: 90%;
+}
+
+/* --------------------------------------------------------------------------
+   Site header and navigation
+   -------------------------------------------------------------------------- */
+
+.headerText {
+	font-family: var(--dc-font-display);
+}
+
+.headerNav {
+	width: 100%;
+	text-align: left;
+	min-height: 24px;
+}
+
+.headerSocialLinks {
+	text-align: right;
+}
+
+/* Was absolutely positioned, which overlapped the social icons on narrow
+   screens. The two children are now laid out side by side instead. */
+.headerNavText {
+	font-size: 10pt;
+}
+
+@media (min-width: 600px) {
+	.headerNav {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.headerNav .headerNavText {
+		text-align: left;
+	}
+
+	.headerNav .headerSocialLinks {
+		flex: none;
+	}
+}
+
+.headerTextMain {
+	font-weight: 600;
+	font-size: clamp(28px, 8vw, 48px);
+	letter-spacing: 2px;
+	line-height: 120%;
+}
+
+.headerTextPre {
+	letter-spacing: 5px;
+	font-size: clamp(11px, 2.6vw, 16px);
+}
+
+.headerTextSub {
+	letter-spacing: 2px;
+	line-height: 120%;
+	font-size: clamp(11px, 2.6vw, 16px);
+}
+
+/* Social icon links. Border-width:0 was previously repeated inline on every
+   one of these images across thousands of pages. */
+.headerSocialLinks img,
+.socialLinks img {
+	border: 0;
+	vertical-align: middle;
+}
+
+.socialLinks {
+	padding-top: 12px;
+	position: relative;
+	text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Legacy "dc" header/nav helpers (from all.css)
+   -------------------------------------------------------------------------- */
+
+#dcHeaderImage {
+	text-align: center;
+	margin: 0 auto; /* was "0px, auto" — an invalid declaration browsers dropped */
+	padding-top: 25px;
+	padding-bottom: 10px;
+}
+
+#dcHeaderImage img,
+.dcHeaderImage {
+	width: 710px;
+	max-width: 100%;
+	height: auto;
+	border-width: 0;
+	text-align: center;
+}
+
+#dcCatalogNav,
+#dcListingNav {
+	text-align: center;
+	padding-bottom: 10px;
+}
+
+#dcListingNav {
+	padding-top: 20px;
+}
+
+#dcCatalogNav #catalogTitle {
+	letter-spacing: 3px;
+	font-size: 12pt;
+	font-weight: 700;
+}
+
+#dcListingNav #listingTitle {
+	font-size: 12pt;
+	font-weight: 700;
+	letter-spacing: 4px;
+}
+
+#dcCatalogNav #catalogNav,
+#dcListingNav #listingNav {
+	font-size: 10pt;
+}
+
+#dcCatalogNav a,
+#dcListingNav a {
+	text-decoration: underline;
+}
+
+.dcNavHeaderText {
+	font-size: small;
+}
+
+.dcNavHeaderTable {
+	width: 100%;
+}
+
+.dcNavHeaderLeft {
+	text-align: left;
+	width: 50%;
+	vertical-align: top;
+}
+
+.dcNavHeaderRight {
+	text-align: right;
+	width: 50%;
+	vertical-align: top;
+}
+
+.dcNavHeaderImages {
+	width: 16px;
+	height: 16px;
+	border-width: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Galleries
+   -------------------------------------------------------------------------- */
+
+#gallery {
+	padding: 2px 0;
+	margin: 0 auto;
+	max-width: var(--dc-gallery-max);
+}
+
+#gallery #images {
+	width: 100%;
+	margin: 0;
+	padding: 1px 0;
+	list-style: none;
+}
+
+#gallery #images li {
+	padding: 5px;
+}
+
+#gallery #images li img {
+	z-index: 1;
+	border: 1px solid var(--dc-border);
+	margin-left: 5px;
+	margin-right: 5px;
+}
+
+#gallery #details {
+	text-align: center;
+	color: var(--dc-fg);
+	font-family: var(--dc-font);
+	padding: 15px 20px;
+}
+
+/* The Facebook SDK root. The SDK no longer loads, so this renders as an empty
+   spacer; the padding is kept so page rhythm is unchanged until Phase 5
+   strips the markup. */
+#gallery #fb-root {
+	padding: 5px 20px;
+}
+
+#gallery #details #title {
+	font-weight: bold;
+	letter-spacing: 4pt;
+}
+
+#gallery #details #date {
+	font-size: 10px;
+}
+
+.galleryphoto {
+	border: 5px solid var(--dc-border);
+}
+
+.galleryphoto:hover {
+	border-color: var(--dc-accent);
+}
+
+/* --------------------------------------------------------------------------
+   Dead social share overlays
+
+   ~1,017 archive pages still contain Pinterest/Tumblr/Facebook/Twitter share
+   overlays. They were revealed by ShareLoad() in js/galleries.js, but that
+   file's entire contents have been commented out for years, so the overlays
+   can never be shown. They also carry an inline style="display:none".
+
+   The original rules positioned them with hard-coded offsets such as
+   `top:-632px; left:875px`, which only made sense at one fixed page width.
+   Those are replaced with an explicit hide until Phase 5 removes the markup.
+   -------------------------------------------------------------------------- */
+
+.shareWide,
+.shareTallL,
+.shareTallR {
+	display: none !important;
+}
+
+.shareOuter {
+	position: relative;
+}
+
+.shareItem,
+.shareImage {
+	border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   "Photos of You" galleries
+   -------------------------------------------------------------------------- */
+
+#gallery #youimages,
+#gallery #youimage {
+	width: 100%;
+	margin: 0;
+	padding: 1px 0;
+	list-style: none;
+}
+
+#gallery #youimages li {
+	padding: 5px;
+	width: 240px;
+	max-width: 100%;
+	border: 0;
+	display: inline-block;
+	margin: 5px;
+	vertical-align: top;
+}
+
+#gallery #youimage li {
+	padding: 5px;
+	border: 0;
+	display: inline-block;
+	margin: 5px;
+}
+
+#gallery #youimages li img,
+#gallery #youimage li img {
+	z-index: 1;
+	border: 1px solid var(--dc-border);
+	max-width: 100%;
+	height: auto;
+}
+
+.younavigation {
+	font-size: small;
+}
+
+/* --------------------------------------------------------------------------
+   Catalog listings
+   -------------------------------------------------------------------------- */
+
+#catalog {
+	padding: 0;
+	margin: 0 auto;
+	width: 100%;
+	color: var(--dc-fg);
+	font-size: small;
+	font-family: var(--dc-font);
+}
+
+#catalog a {
+	text-decoration: none;
+}
+
+#catalog a:hover {
+	text-decoration: underline;
+}
+
+#catalog .catalogGroupHeader {
+	font-size: 14pt;
+	letter-spacing: 2px;
+	font-weight: bold;
+	color: var(--dc-muted);
+	padding-bottom: 5px;
+}
+
+#catalog .catalogList {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* IE-era hacks removed: `display:-moz-inline-stack`, `zoom:1` and the
+   `*display:inline` star hack served browsers that no longer exist. */
+#catalog .catalogList li {
+	padding: 2px;
+	width: 250px;
+	max-width: 100%;
+	border: 0;
+	display: inline-block;
+	margin: 5px;
+	vertical-align: top;
+}
+
+#catalog .catalogList li event {
+	font-weight: bold;
+}
+
+#catalog .catalogList li img {
+	z-index: 1;
+	border: 1px solid var(--dc-border);
+	margin-left: 5px;
+	margin-right: 5px;
+}
+
+.catalogImage {
+	border: 3px solid var(--dc-border);
+}
+
+.catalogImage:hover {
+	border-color: var(--dc-accent);
+}
+
+.disable {
+	opacity: 0.5;
+}
+
+.disable img {
+	border: 0;
+}
+
+/* Legacy Expression Web utility classes, still referenced by catalog markup. */
+.style1 {
+	letter-spacing: 3px;
+}
+
+.style2 {
+	font-size: small;
+}
+
+.style4 {
+	font-size: small;
+	text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+   Home page feature rotator
+   -------------------------------------------------------------------------- */
+
+.mainImages {
+	position: relative;
+	margin: 0 auto;
+	max-width: var(--dc-feature-max);
+}
+
+.mainImageOuter {
+	width: 100%;
+	max-width: var(--dc-feature-max);
+	margin: 0 auto;
+}
+
+.mainTextOuter {
+	width: 100%;
+	max-width: var(--dc-feature-max);
+	margin: 0 auto;
+}
+
+.mainTextColor {
+	background-color: var(--dc-panel);
+	min-height: 40px;
+	padding: 6px 10px 6px 20px;
+	text-align: right;
+	display: inline-block;
+}
+
+.mainTextArtist {
+	font-weight: bold;
+}
+
+.mainTextDate {
+	font-size: 10px;
+}
+
+.circlesContainer {
+	padding-top: 20px;
+	text-align: center;
+	position: relative;
+	margin: 0 auto;
+}
+
+/* Unprefixed border-radius: the -webkit-/-moz- variants were required only by
+   browsers released before 2011. */
+.circle {
+	width: 12px;
+	height: 12px;
+	border-radius: 6px;
+	background: #646464;
+	display: inline-block;
+	cursor: pointer;
+	margin: 0 1px;
+}
+
+.circleSelected {
+	background: #b4b4b4;
+}
+
+/* --------------------------------------------------------------------------
+   Prose pages (about, etc.)
+   -------------------------------------------------------------------------- */
+
+.prose {
+	max-width: var(--dc-prose-max);
+	margin: 0 auto;
+	padding-top: 20px;
+	text-align: left;
+}
+
+.prose img {
+	vertical-align: middle;
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+
+.siteFooter {
+	font-size: small;
+	padding: 20px 10px;
+}
+
+/* --------------------------------------------------------------------------
+   Print
+   -------------------------------------------------------------------------- */
+
+@media print {
+	body {
+		color: #000;
+		background: #fff;
+	}
+
+	.headerNav,
+	.socialLinks,
+	.circlesContainer {
+		display: none;
+	}
+}

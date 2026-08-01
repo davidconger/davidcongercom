@@ -29,6 +29,46 @@ separates references inside dead trees from those on genuinely live pages.
 node tools/analyze-links.js baseline-links.json
 ```
 
+## diff-links.js
+
+Diffs two `check-links.js` reports and prints what became **newly broken** and
+what was fixed. This is the authoritative "did I break anything?" check — run it
+after every phase. Ad-hoc greps have produced false negatives here; trust this
+instead.
+
+```bash
+node tools/diff-links.js phase1-final.json phase2-links.json
+```
+
+## css-selector-diff.js
+
+Compares the selector set of the pre-consolidation stylesheets against
+`css/site.css`, so merging four files into one cannot silently drop a rule that
+markup still depends on.
+
+```bash
+# extract the originals from git first, then:
+node tools/css-selector-diff.js <dir-of-old-css> css/site.css
+```
+
+## serve.js
+
+Minimal static server for previewing the site locally, with IIS-like directory →
+`index.htm` fallback.
+
+```bash
+node tools/serve.js . 8099
+```
+
+## recover-from-live.js
+
+Downloads missing files from `https://www.davidconger.com`, which is treated as
+authoritative when a local file is lost.
+
+```bash
+node tools/recover-from-live.js <list-of-paths.txt>
+```
+
 ## Baseline (2026-07-31, before any modernization work)
 
 | Metric | Value |
