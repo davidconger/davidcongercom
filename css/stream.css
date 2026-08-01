@@ -810,9 +810,45 @@ a.yearStep:focus-visible {
 	}
 }
 
+/* The year list at /galleries/. Each card is a rotator like any other, but its
+   caption is navigation rather than a credit: the year is the whole point of
+   the card, and "View" above it says the panel is the way in. The underline is
+   there for the same reason -- nothing else on these pages is a text link, so
+   without it the panel reads as a label. */
+.yearCaption {
+	justify-content: center;
+}
+
+.yearCaptionLead {
+	display: block;
+	font-size: 12px;
+	letter-spacing: 2.6px;
+	text-transform: uppercase;
+	opacity: 0.78;
+}
+
+.yearCaptionYear {
+	display: block;
+	margin-top: 1px;
+	font-family: var(--dc-font-display);
+	font-size: 30px;
+	font-weight: 600;
+	letter-spacing: 3px;
+	line-height: 1.1;
+	text-decoration-line: underline;
+	text-decoration-color: rgba(255, 255, 255, 0.38);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 4px;
+	transition: text-decoration-color 180ms ease;
+}
+
+.show:hover .yearCaptionYear,
+.yearCaption:focus-visible .yearCaptionYear {
+	text-decoration-color: currentColor;
+}
+
 /* --------------------------------------------------------------------------
    Home page
-
    The home page is one show in the same grid the year pages use, so almost
    everything above applies unchanged. What differs is the band under the
    masthead: where a year page carries its year, the home page carries the three
@@ -831,7 +867,13 @@ a.yearStep:focus-visible {
 
 /* Matched to .yearLabel, and stating every link state because the site-wide
    a:hover rule -- specificity (0,1,1) -- outranks any single class and would
-   otherwise turn these blue and underline them. */
+   otherwise turn these blue.
+
+   These three keep their underline. Everywhere else on the site a link is
+   either a photograph or a caption and its target is obvious; here it is three
+   words in a band, and without the rule under them they read as a heading
+   rather than as the way into the site. The rule is held back from full
+   strength so it sits under the words instead of boxing them in. */
 .yearBar .siteNav a,
 .yearBar .siteNav a:link,
 .yearBar .siteNav a:visited,
@@ -839,16 +881,20 @@ a.yearStep:focus-visible {
 	font-family: var(--dc-font-display);
 	font-size: 15px;
 	letter-spacing: 2.2px;
-	color: #a6a6a6;
-	text-decoration: none;
+	color: #dcdcdc;
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 255, 255, 0.34);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 5px;
 	white-space: nowrap;
-	transition: color 180ms ease;
+	transition: color 180ms ease, text-decoration-color 180ms ease;
 }
 
 .yearBar .siteNav a:hover,
 .yearBar .siteNav a:focus-visible {
 	color: var(--dc-fg, #ffffff);
-	text-decoration: none;
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 255, 255, 0.75);
 }
 
 .yearBar .siteNav a:focus-visible {
@@ -865,6 +911,52 @@ a.yearStep:focus-visible {
 	display: none;
 }
 
+/* The wall of past work behind the featured photograph. It is the same band
+   the home page has carried since 2015 -- a tiled sheet of frames, dimmed, with
+   the fade to background baked into the top and bottom of the tile itself, so
+   nothing here has to mask it.
+
+   Reaching both edges of the window is done by cancelling the body padding on
+   <main> rather than by a 100vw child. 100vw counts the scrollbar, so it always
+   overhangs by its width and puts a horizontal scrollbar on the page; negative
+   margins are exact. */
+.homeStream {
+	position: relative;
+	margin-left: -12px;
+	margin-right: -12px;
+	padding-left: 12px;
+	padding-right: 12px;
+}
+
+.homeWall {
+	position: absolute;
+	/* .stream's own padding-top, so the band starts level with the photograph. */
+	top: 17px;
+	left: 0;
+	right: 0;
+	/* One tile tall. The tile is 1707x425 and repeats sideways only, so the
+	   band is always exactly the artwork rather than a seam. */
+	height: 425px;
+	background: url("../images/2015-background.jpg") repeat-x center top;
+	pointer-events: none;
+}
+
+.homeGrid {
+	position: relative;
+}
+
+/* There is only one show on the home page, so the rule that steps the others
+   back has nothing to act on -- but it still fires for the instant the pointer
+   is inside the grid and outside the photograph, which reads as an unexplained
+   flicker on the way out. */
+.homeGrid:hover .show:not(:hover):not(:focus-within) {
+	opacity: 1;
+}
+
+.homeGrid .show {
+	transition: none;
+}
+
 @media (max-width: 560px) {
 	.yearBar .siteNav {
 		gap: 4px 18px;
@@ -876,5 +968,260 @@ a.yearStep:focus-visible {
 	.yearBar .siteNav a:active {
 		font-size: 13px;
 		letter-spacing: 1.4px;
+	}
+}
+
+/* --------------------------------------------------------------------------
+   Individual gallery pages
+
+   Everything below is scoped to body.galleryPage on purpose. #gallery,
+   #details and #images are also the containers used by roughly five thousand
+   pages under /you/, which is live and out of scope, so none of these rules
+   may be allowed to reach them. The class is the fence.
+   -------------------------------------------------------------------------- */
+
+.galleryPage #gallery {
+	max-width: 640px;
+	margin: 0 auto;
+	padding: 0;
+}
+
+/* The title block reads top-down -- who, then what tour, then where, then
+   when -- so each line gets its own weight rather than all four arriving at
+   once. The generators separated the lines with <br>, which leaves no room to
+   space them; the breaks are dropped and the spans made blocks instead. */
+.galleryPage #gallery #details {
+	padding: 26px 12px 30px;
+	font-family: var(--dc-font-display);
+}
+
+.galleryPage:not(.flatGallery) #gallery #details br {
+	display: none;
+}
+
+.galleryPage:not(.flatGallery) #gallery #details span {
+	display: block;
+}
+
+.galleryPage #gallery #details #title {
+	font-size: 30px;
+	font-weight: 600;
+	letter-spacing: 3px;
+	line-height: 1.2;
+	color: var(--dc-fg, #ffffff);
+}
+
+.galleryPage #gallery #details #tour {
+	margin-top: 9px;
+	font-size: 14px;
+	letter-spacing: 2px;
+	color: #a6a6a6;
+}
+
+.galleryPage #gallery #details #venue {
+	margin-top: 9px;
+	font-size: 14px;
+	letter-spacing: 1.6px;
+	color: #8a8a8a;
+}
+
+.galleryPage #gallery #details #date {
+	margin-top: 6px;
+	font-size: 12px;
+	letter-spacing: 1.8px;
+	text-transform: uppercase;
+	color: #6f6f6f;
+}
+
+.galleryPage #gallery #images {
+	padding: 0;
+}
+
+.galleryPage #gallery #images li {
+	padding: 0;
+	margin: 0 0 30px;
+}
+
+/* The 2013-2015 pages wrap every photograph in a pair of .shareOuter elements
+   left over from the Facebook share overlay. The overlay is gone; the wrappers
+   stay because they are inside the gallery markup, so they are flattened to
+   nothing rather than removed from a thousand files. */
+.galleryPage #gallery #images .shareOuter {
+	display: block;
+	line-height: 0;
+}
+
+/* No border -- the frame is seated with a shadow instead, the same two-part
+   one the year pages use: a tight contact shadow, and a wide soft one to lift
+   it off the background. */
+.galleryPage #gallery #images li img {
+	display: block;
+	margin: 0 auto;
+	max-width: 100%;
+	height: auto;
+	border: 0;
+	box-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.55),
+		0 10px 26px rgba(0, 0, 0, 0.45);
+}
+
+/* The way back to the year. It sits next to Home as the second half of a
+   breadcrumb, and stays close to the background until the pointer reaches it
+   -- the page is a set of photographs, and navigation should not compete with
+   them. The site-wide a:hover rule outranks a single class, so every state is
+   spelled out. */
+.crumbYear,
+.crumbYear:link,
+.crumbYear:visited,
+.crumbYear:active {
+	font-family: var(--dc-font-display);
+	font-size: 15px;
+	letter-spacing: 2.4px;
+	line-height: 1;
+	color: #6f6f6f;
+	text-decoration: none;
+	transition: color 180ms ease;
+}
+
+.crumbYear:hover,
+.crumbYear:focus-visible {
+	color: var(--dc-fg, #ffffff);
+	text-decoration: none;
+}
+
+.crumbYear:focus-visible {
+	outline: 2px solid #0066ff;
+	outline-offset: 4px;
+	border-radius: 2px;
+}
+
+@media (max-width: 560px) {
+	.galleryPage #gallery #details {
+		padding: 18px 8px 22px;
+	}
+
+	.galleryPage #gallery #details #title {
+		font-size: 23px;
+		letter-spacing: 2.2px;
+	}
+
+	.galleryPage #gallery #images li {
+		margin: 0 0 20px;
+	}
+}
+/* --------------------------------------------------------------------------
+   The flat legacy galleries -- galleries/<slug>.htm, 2009-2012
+
+   These predate the foldered generator and keep their photographs in a mix of
+   <p> and two-column <table> blocks rather than a list. The blocks are left
+   exactly as they are, because every link out to Flickr lives inside them; the
+   styling here only removes the old white border, seats each photograph with
+   the same shadow the rest of the site uses, and stops the fixed-width tables
+   from overflowing a phone.
+
+   Unlike the foldered galleries the title block here is loose text separated by
+   <br>, not one span per line, so those breaks have to stay.
+   -------------------------------------------------------------------------- */
+
+.flatGallery #gallery {
+	max-width: 720px;
+}
+
+.flatGallery #gallery #details {
+	font-size: 14px;
+	letter-spacing: 1.4px;
+	line-height: 1.9;
+	color: #8a8a8a;
+}
+
+.flatGallery #gallery #details #title {
+	display: block;
+	margin-bottom: 8px;
+	font-size: 30px;
+	font-weight: 600;
+	letter-spacing: 3px;
+	line-height: 1.2;
+	color: var(--dc-fg, #ffffff);
+}
+
+/* The page's own inline <style> sets these; they are the small print under the
+   date, and the second is the artist span on the 2011-era pages. */
+.flatGallery #gallery #details .style1 {
+	font-size: 12px;
+	letter-spacing: 1.4px;
+	color: #6f6f6f;
+}
+
+.flatGallery #gallery #details .style2 {
+	font-weight: 600;
+	letter-spacing: 3px;
+}
+
+.flatGallery #gallery #details a,
+.flatGallery #gallery #details a:link,
+.flatGallery #gallery #details a:visited,
+.flatGallery #gallery #details a:active {
+	color: #a6a6a6;
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 255, 255, 0.3);
+	text-underline-offset: 3px;
+}
+
+.flatGallery #gallery #details a:hover,
+.flatGallery #gallery #details a:focus-visible {
+	color: var(--dc-fg, #ffffff);
+	text-decoration: underline;
+	text-decoration-color: currentColor;
+}
+
+.flatImages p {
+	margin: 0 0 30px;
+}
+
+.flatImages img,
+.flatGallery .galleryphoto {
+	display: inline-block;
+	max-width: 100%;
+	height: auto;
+	border: 0;
+	box-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.55),
+		0 10px 26px rgba(0, 0, 0, 0.45);
+}
+
+.flatGallery .galleryphoto:hover {
+	border: 0;
+}
+
+/* The two-up blocks were laid out with a 700px table, which is wider than a
+   phone. The width is inline, so overriding it needs the flag. */
+.flatImages table {
+	width: auto !important;
+	max-width: 100%;
+	margin: 0 auto 30px;
+	border-collapse: collapse;
+}
+
+.flatImages td {
+	padding: 0 6px;
+	vertical-align: top;
+}
+
+@media (max-width: 720px) {
+	.flatImages table,
+	.flatImages tbody,
+	.flatImages tr,
+	.flatImages td {
+		display: block;
+		width: auto !important;
+	}
+
+	.flatImages td {
+		padding: 0 0 30px;
+	}
+
+	.flatGallery #gallery #details #title {
+		font-size: 23px;
+		letter-spacing: 2.2px;
 	}
 }

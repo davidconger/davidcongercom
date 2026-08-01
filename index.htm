@@ -28,7 +28,7 @@
 
 </head>
 
-<body>
+<body class="homePage">
 
 <div class="streamTopBar">
 	<div class="streamBar topBarInner">
@@ -67,8 +67,13 @@
 	</nav>
 </div>
 
-<main class="stream">
-	<ul class="showGrid">
+<main class="stream homeStream">
+	<!-- The wall of past work the featured photograph sits on. It is a sibling
+	     of the grid rather than a background on the frame so it can span the
+	     full width of the window while the photograph stays centred on it. -->
+	<div class="homeWall" aria-hidden="true"></div>
+
+	<ul class="showGrid homeGrid">
 		<!-- One show, exactly as a year page builds them, so js/stream.js drives
 		     it: the photograph advances the rotator and the caption is the way
 		     through to that gallery. js/homerotate.js fills in the slides from

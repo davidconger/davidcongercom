@@ -47,12 +47,15 @@ const argv = process.argv.slice(2);
 const years = [];
 let maxPhotos = 3;
 let limit = Infinity;
+// The year list is assembled from the year pages already on disk, so it can be
+// rebuilt on its own without re-sampling six thousand frames.
+const indexOnly = argv.includes('--index-only');
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === '--year') years.push(argv[++i]);
   else if (argv[i] === '--photos') maxPhotos = Number(argv[++i]);
   else if (argv[i] === '--limit') limit = Number(argv[++i]);
 }
-if (!years.length) { console.error('Usage: node tools/build-stream.js --year 2019 [--year 2020] [--photos 3]'); process.exit(1); }
+if (!years.length && !indexOnly) { console.error('Usage: node tools/build-stream.js --year 2019 [--year 2020] [--photos 3] | --index-only'); process.exit(1); }
 
 const escapeHtml = (s) => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -469,6 +472,45 @@ ${footer()}
  * to one entry. Everything it needs is already in the markup: the lead frame,
  * its caption tint, and how many shows the year holds.
  */
+/**
+ * The year list at /galleries/.
+ *
+ * Every year is one card carrying a rotator of frames from that year, so the
+ * page is a set of moving photographs rather than a list of links -- the same
+ * thing a year page is, one level up.
+ *
+ * The frames come from two places. First choice is js/featured-images.json,
+ * which is the hand-picked pool the home page rotates through and already
+ * carries a measured caption tint per image. Where a year has fewer than seven
+ * picks, the rest are taken from the year's own page: the lead frame of each
+ * show, with the tint it was built with. Nothing is re-sampled, so the index
+ * costs nothing to rebuild.
+ *
+ * It reads the year pages back off disk rather than from the build's own data,
+ * so rebuilding a single year leaves the index whole instead of shrinking it to
+ * that one year.
+ */
+const CARD_FRAMES = 7;
+
+function featuredByYear() {
+  const file = path.join(ROOT, 'js', 'featured-images.json');
+  const out = new Map();
+  if (!fs.existsSync(file)) return out;
+  for (const it of JSON.parse(fs.readFileSync(file, 'utf8'))) {
+    const m = /^galleries\/(\d{4})\//.exec(it.image || '');
+    if (!m || !it.width || !it.height) continue;
+    const cap = it.cap || [];
+    if (!out.has(m[1])) out.set(m[1], []);
+    out.get(m[1]).push({
+      src: it.image.replace(/^galleries\//, ''),
+      width: it.width,
+      height: it.height,
+      style: cap.length === 3 ? `--cap-top:${cap[0]};--cap-bot:${cap[1]};--cap-fg:${cap[2]}` : '',
+    });
+  }
+  return out;
+}
+
 function renderIndex() {
   const years = fs.readdirSync(OUT, { withFileTypes: true })
     .filter((e) => e.isDirectory() && /^\d{4}$/.test(e.name))
@@ -478,21 +520,55 @@ function renderIndex() {
     .reverse();
   if (!years.length) return null;
 
+  const featured = featuredByYear();
+
   const cards = years.map((year) => {
     const html = fs.readFileSync(path.join(OUT, year, 'index.htm'), 'utf8');
-    const slide = /<div class="showSlide is-active" style="([^"]*)">\s*<img src="([^"]+)" width="(\d+)" height="(\d+)"/.exec(html);
-    const count = (html.match(/<li class="show/g) || []).length;
-    if (!slide) return '';
-    const [, style, src, w, h] = slide;
-    return `		<li class="show">
+
+    // Every show's lead frame, with the tint that year page was built with.
+    const fromYear = [];
+    const re = /<div class="showSlide is-active" style="([^"]*)">\s*<img src="([^"]+)" width="(\d+)" height="(\d+)"/g;
+    let m;
+    while ((m = re.exec(html))) {
+      fromYear.push({ style: m[1], src: `${year}/${m[2]}`, width: Number(m[3]), height: Number(m[4]) });
+    }
+    if (!fromYear.length) return '';
+
+    // Every slide in a card is stacked on the first one, so they all have to
+    // be the same shape or the caption moves when the rotator advances. The
+    // lead frame decides, and anything a different size is passed over.
+    const shape = `${fromYear[0].width}x${fromYear[0].height}`;
+    const fits = (f) => `${f.width}x${f.height}` === shape;
+
+    const picks = [];
+    const seen = new Set();
+    for (const f of [...(featured.get(year) || []).map((f) => ({ ...f, src: `${year}/${f.src.replace(/^\d{4}\//, '')}` })), ...fromYear]) {
+      if (picks.length >= CARD_FRAMES || seen.has(f.src) || !fits(f)) continue;
+      seen.add(f.src);
+      picks.push(f);
+    }
+
+    // The caption is the only way in, so it says so: the word, then the year,
+    // underlined the way a link is.
+    const caption = (i) => `
+					<a class="showCaption yearCaption" href="${year}/"${i === 0 ? '' : ' tabindex="-1"'}>
+						<span class="yearCaptionLead">View</span><span class="yearCaptionYear">${year}</span>
+					</a>`;
+
+    const slides = picks.map((f, i) => `				<div class="showSlide${i === 0 ? ' is-active' : ''}" style="${f.style}"${i === 0 ? '' : ' aria-hidden="true"'}>
+					<img src="${f.src}" width="${f.width}" height="${f.height}" alt="${year}" loading="lazy" decoding="async">${caption(i)}
+				</div>`).join('\n');
+
+    const many = picks.length > 1;
+    const dots = many ? `
+			<div class="showDots" role="tablist" aria-label="More frames from ${year}">
+${picks.map((f, i) => `				<button type="button" role="tab" data-index="${i}" aria-selected="${i === 0}" aria-label="Frame ${i + 1} of ${picks.length}"></button>`).join('\n')}
+			</div>` : '';
+
+    return `		<li class="show${many ? ' has-rotator' : ''}">
 			<div class="showFrame">
-				<div class="showSlide is-active" style="${style}">
-					<img src="${year}/${src}" width="${w}" height="${h}" alt="${year}" loading="lazy" decoding="async">
-					<a class="showCaption" href="${year}/">
-						<span class="showArtist">${year}</span><span class="showVenue">${count} ${count === 1 ? 'gallery' : 'galleries'}</span>
-					</a>
-				</div>
-			</div>
+${slides}
+			</div>${dots}
 		</li>`;
   }).filter(Boolean).join('\n');
 
@@ -533,7 +609,7 @@ ${masthead()}
 
 <div class="yearBar">
 	<nav class="yearNav" aria-label="Year">
-		<span class="yearLabel is-static">${span}</span>
+		<span class="yearLabel is-static">Concert &amp; Event Photo Galleries</span>
 	</nav>
 </div>
 
@@ -558,26 +634,28 @@ fs.mkdirSync(OUT, { recursive: true });
 const built = [];
 const data = new Map();
 
-for (const year of years) {
-  const list = shows(year);
-  console.log(`\n=== ${year}: ${list.length} show(s), ${list.reduce((n, s) => n + s.frames.length, 0)} frame(s)`);
-  data.set(year, list);
-  built.push(year);
-}
+if (!indexOnly) {
+  for (const year of years) {
+    const list = shows(year);
+    console.log(`\n=== ${year}: ${list.length} show(s), ${list.reduce((n, s) => n + s.frames.length, 0)} frame(s)`);
+    data.set(year, list);
+    built.push(year);
+  }
 
-const allPaths = [];
-for (const list of data.values()) {
-  for (const s of list) for (const f of s.frames) allPaths.push(path.join(ROOT, 'galleries', s.rel, f.file));
-}
-console.log(`\nsampling caption colours for ${allPaths.length} frame(s)...`);
-const colors = sampleColors(allPaths);
+  const allPaths = [];
+  for (const list of data.values()) {
+    for (const s of list) for (const f of s.frames) allPaths.push(path.join(ROOT, 'galleries', s.rel, f.file));
+  }
+  console.log(`\nsampling caption colours for ${allPaths.length} frame(s)...`);
+  const colors = sampleColors(allPaths);
 
-for (const year of built) {
-  const dir = path.join(OUT, year);
-  fs.mkdirSync(dir, { recursive: true });
-  const html = renderYear(year, data.get(year), colors, built);
-  fs.writeFileSync(path.join(dir, 'index.htm'), html, 'utf8');
-  console.log(`  wrote galleries/${year}/index.htm (${(html.length / 1024).toFixed(0)} KB)`);
+  for (const year of built) {
+    const dir = path.join(OUT, year);
+    fs.mkdirSync(dir, { recursive: true });
+    const html = renderYear(year, data.get(year), colors, built);
+    fs.writeFileSync(path.join(dir, 'index.htm'), html, 'utf8');
+    console.log(`  wrote galleries/${year}/index.htm (${(html.length / 1024).toFixed(0)} KB)`);
+  }
 }
 
 const indexHtml = renderIndex();
