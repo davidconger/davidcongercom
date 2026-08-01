@@ -79,11 +79,16 @@ function canonicalFor(file) {
 }
 
 /** An existing hand-written og:description is better copy than anything this
- *  script can generate, so it wins over the generated sentence. */
+ *  script can generate, so it wins over the generated sentence.
+ *
+ *  The content is captured with a backreference to the opening quote rather
+ *  than a [^"']* class: an apostrophe inside a double-quoted attribute is a
+ *  perfectly ordinary character, and matching against both quote characters
+ *  silently truncated every description containing one ("Photos of Guns N"). */
 function existingOgDescription(html) {
-  const m = html.match(/<meta[^>]+property\s*=\s*["']og:description["'][^>]*content\s*=\s*["']([^"']*)["']/i)
-    || html.match(/<meta[^>]+content\s*=\s*["']([^"']*)["'][^>]*property\s*=\s*["']og:description["']/i);
-  return m && m[1].trim() ? decode(m[1]) : null;
+  const m = html.match(/<meta[^>]+property\s*=\s*["']og:description["'][^>]*content\s*=\s*(["'])([\s\S]*?)\1/i)
+    || html.match(/<meta[^>]+content\s*=\s*(["'])([\s\S]*?)\1[^>]*property\s*=\s*["']og:description["']/i);
+  return m && m[2].trim() ? decode(m[2]) : null;
 }
 
 /** First photograph on the page, as an absolute URL, for og:image. */
@@ -282,7 +287,7 @@ function transform(file, html) {
     // OpenGraph, so a shared link shows the photograph rather than a bare URL.
     // Only added where the page has real metadata to describe itself with.
     if (!/<meta[^>]+property\s*=\s*["']og:/i.test(out)) {
-      const desc = (out.match(/<meta[^>]+name\s*=\s*["']description["'][^>]*content\s*=\s*["']([^"']*)["']/i) || [])[1];
+      const desc = (out.match(/<meta[^>]+name\s*=\s*["']description["'][^>]*content\s*=\s*(["'])([\s\S]*?)\1/i) || [])[2];
       const ogTitle = d.title
         ? (d.venue ? `${d.title} \u2014 ${d.venue}` : d.title)
         : null;

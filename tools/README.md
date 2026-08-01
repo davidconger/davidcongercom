@@ -474,6 +474,33 @@ Two details worth knowing before editing it:
 - `page-2.htm` is a paginated grid of thumbnails, not a photograph. An earlier
   version treated it as a photo page and titled 427 of them "Photo 2", which is
   why `photoNumber()` explicitly excludes that filename shape.
+- Attribute values are captured with a backreference to the opening quote
+  (`content\s*=\s*(["'])([\s\S]*?)\1`), never with a `["']([^"']*)["']` class. An
+  apostrophe is an ordinary character inside a double-quoted attribute, and the
+  original `[^"']` version silently truncated every description containing one.
+  See `fix-descriptions.js`.
+
+## fix-descriptions.js
+
+Repair for the truncation bug described above, which affected 480 pages:
+
+```
+<meta property="og:description" content="Photos of Guns N' Roses performing at Key Arena."/>
+<meta name="description" content="Photos of Guns N">
+```
+
+`seo-pass.js` only ever *added* the `name="description"` tag and never rewrote
+`og:description`, so the full text was still on every affected page. The repair
+copies the `og:description` attribute content back across verbatim — verbatim
+rather than decoded and re-escaped, since the source value is already escaped
+for a double-quoted attribute context.
+
+```bash
+node tools/fix-descriptions.js --dry-run
+```
+
+Safe to re-run: it only rewrites a description that is a strict prefix of the
+page's own `og:description`, so a second pass finds nothing.
 
 ## seo-sandbox.ps1
 
