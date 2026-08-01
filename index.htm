@@ -1,167 +1,77 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="https://www.w3.org/1999/xhtml" xmlns:og="https://opengraphprotocol.org/schema/" xmlns:fb="https://ogp.me/ns/fb#">
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
-<meta http-equiv="Content-Language" content="en-us" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>David Conger Photography | Concert and Events | Seattle, WA</title>
-<meta name="description" content="The concert, music, and event photography of David Conger, Seattle, WA, USA." />
-<meta name="keywords" content="Concert,Photography,Music,Photo,Event,Live,Performance,Seattle,David Conger,Dave Conger" />
-<meta name="author" content="David Conger, LLC" />
+<meta name="description" content="The concert, music, and event photography of David Conger, Seattle, WA, USA.">
+<meta name="author" content="David Conger, LLC">
+<link rel="canonical" href="https://www.davidconger.com/">
 
-<link href='https://fonts.googleapis.com/css?family=Hind:400,600' rel='stylesheet' type='text/css' />
-<link href='css/core.css' rel='stylesheet' type='text/css' />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css?family=Hind:400,600&amp;display=swap" rel="stylesheet">
+<link href="css/site.css" rel="stylesheet">
 
-<style type="text/css">
-.mainImages {
-    position: relative;
-    top: 25px;
-}
-.mainFloater {
-  position: absolute;
-  left: 50%;
-  margin-left: -320px
-    
-}
-.mainTextOuter {
-	width: 640px;
-	height: 40px;
-	z-index: 100;
-	top:380px;
-}
-.mainTextColor {
-	background-color: #808080;
-	/*width: 400px; */
-	/*margin-left: 230px; ; */
-	height: 40px; 
-	padding-right: 10px; 
-	padding-left: 20px; 
-	text-align: right; 
-	vertical-align:middle;
-}
-.mainTextPosition {
-	vertical-align:middle;
-	padding-top: 3px;
-}
-.mainTextArtist {
-	font-weight:bold;
-}
-.mainTextDate {
-	font-size: 10px;
-}
-.mainImageOuter {
-	width: 640px;
-	z-index: 50;
-}
-.mainBackgroundImage {
-	background:transparent url('images/2015-background.jpg') repeat scroll 0% 0%;
-	width: 100%;
-	height: 425px;
-	z-index: 1;
-}
+<meta property="og:title" content="david conger | photography">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="www.davidconger.com">
+<meta property="og:image" content="https://www.davidconger.com/images/like/fb.jpg">
+<meta property="og:url" content="https://www.davidconger.com/">
+<meta property="og:description" content="Concert and event photography by David Conger (Seattle, WA).">
 
-.socialLinks {
-	padding-top:12px; 
-	position: relative;
-	text-align:center; 
-}
-
-.circlesContainer {
-	padding-top:20px;
-    text-align:center;
-    position:relative;
-    margin: 0px auto;
-}
-
-.circle {
-	width: 12px;
-	height: 12px;
-	-webkit-border-radius: 6px;
-	-moz-border-radius: 6px;
-	border-radius: 6px;
-	background: #646464;
-	display: inline-block;
-	cursor: hand;
-	cursor: pointer; 
-    margin-right: 1px;
-    margin-left: 1px;
-}
-
-.circleSelected {
-    background: #b4b4b4;
-}
-
-</style>
-
-<script type="text/javascript" src="js/homerotate.js"></script>
-
-<meta property="og:title" content="david conger | photography"/>
-<meta property="og:type" content="website" />
-<meta property="og:site_name" content="www.davidconger.com"/>
-<meta property="fb:admins" content="17701228"/>
-<meta property="fb:app_id" content="139826329427348"/>
-<meta property="og:image" content="https://davidconger.com/images/like/fb.jpg"/>
-<meta property="og:url" content="https://www.davidconger.com/"/>
-<meta property="og:description" content="Concert and event photography by David Conger (Seattle, WA)."/>
-
-<script type="text/javascript" src="js/azureinsights.js"></script>
+<script src="js/homerotate.js" defer></script>
+<script src="js/azureinsights.js" defer></script>
 
 </head>
 
-<body onload="Start()">
+<body>
 
-<div class="headerNav">
-</div>
-
-<div class="headerText">
+<header class="headerText">
 	<div class="headerTextPre">the concert &amp; event photography of</div>
 	<div class="headerTextMain">David Conger</div>
 	<div class="headerTextSub">david@davidconger.com | Seattle, WA</div>
-</div>
+</header>
 
-<div style="position: relative; padding-top:20px;">
-	<a href="catalog/index.htm" onclick="keepRotating = false;">Concerts &amp; Event Photos</a>&nbsp; | &nbsp;
-	<a href="you/index.htm" onclick="keepRotating = false;">Your Meet &amp; Greet Photo</a>&nbsp; | &nbsp;
-	<a href="about.htm" onclick="keepRotating = false;">About Dave</a>
-</div>
+<nav class="siteNav" aria-label="Main">
+	<a href="catalog/index.htm">Concerts &amp; Event Photos</a> |
+	<a href="you/index.htm">Your Meet &amp; Greet Photo</a> |
+	<a href="about.htm">About Dave</a>
+</nav>
 
-<div class="mainImages" id="focusContainer" style="visibility:hidden">
-	<div class="mainFloater mainTextOuter">
-	<div style="display:block; text-align:right;">
-		<div class="mainTextColor" id="focusBox" style="display:inline-block;" >
-			<div class="mainTextPosition">
-				<span id="focusArtist" class="mainTextArtist"></span><span id="focusVenue"></span>
-			</div>
-			<div id="focusDate" class="mainTextDate"></div>
-		</div>
+<main>
+	<div class="mainStage">
+		<div class="mainImages" id="focusContainer">
+			<a class="mainImageLink" id="focusLink" href="catalog/index.htm">
+				<img id="focusImage" src="" alt="" width="640" height="426">
+				<span class="mainTextOuter">
+					<span class="mainTextColor">
+						<span id="focusArtist" class="mainTextArtist"></span><span id="focusVenue"></span>
+						<span id="focusDate" class="mainTextDate"></span>
+					</span>
+				</span>
+			</a>
 		</div>
 	</div>
-	<div class="mainFloater mainImageOuter">
-		<img id="focusImage" />
+
+	<div class="circlesContainer"></div>
+</main>
+
+<footer>
+	<div class="socialLinks">
+		<a href="https://www.facebook.com/pages/david-conger-photography/139826329427348"><img src="images/icons/facebook-24.png" style="background-color: #3B5998;" width="24" height="24" alt="David Conger Photography on Facebook"></a>
+		<a href="https://www.flickr.com/photos/davidconger"><img src="images/icons/flickr-24.png" style="background-color: #0063DB;" width="24" height="24" alt="David Conger Photography on Flickr"></a>
+		<a href="https://twitter.com/dcongerphoto"><img src="images/icons/twitter-24.png" style="background-color: #00ACED;" width="24" height="24" alt="David Conger Photography on Twitter"></a>
+		<a href="https://instagram.com/dcongerphoto"><img src="images/icons/instagram-24.png" style="background-color: #3F729B;" width="24" height="24" alt="David Conger Photography on Instagram"></a>
+		<a href="mailto:david@davidconger.com"><img src="images/icons/email-24.png" style="background-color: #3B5998;" width="24" height="24" alt="Email David Conger"></a>
 	</div>
-	<div class="mainBackgroundImage"></div>
-</div>
 
-<div class="circlesContainer" style="padding-top:40px;">
-	<div class="circle" id="circle0" onclick="SkipToImage(this)"></div>
-	<div class="circle" id="circle1" onclick="SkipToImage(this)"></div>
-	<div class="circle" id="circle2" onclick="SkipToImage(this)"></div>
-	<div class="circle" id="circle3" onclick="SkipToImage(this)"></div>
-	<div class="circle" id="circle4" onclick="SkipToImage(this)"></div>
-	<div class="circle" id="circle5" onclick="SkipToImage(this)"></div>
-	<div class="circle" id="circle6" onclick="SkipToImage(this)"></div>
-	<div class="circle" id="circle7" onclick="SkipToImage(this)"></div>
-	<div class="circle" id="circle8" onclick="SkipToImage(this)"></div>
-	<div class="circle" id="circle9" onclick="SkipToImage(this)"></div>
-</div>
-
-<div class="socialLinks">
-	<a target="_top" onclick="keepRotating = false;" href="https://www.facebook.com/pages/david-conger-photography/139826329427348"><img src="images/icons/facebook-24.png" style="background-color: #3B5998; border-width: 0px;" width="24" height="24" /></a>&nbsp;
-	<a target="_top" onclick="keepRotating = false;" href="https://www.flickr.com/photos/davidconger"><img src="images/icons/flickr-24.png" style="background-color: #0063DB; border-width: 0px;" width="24" height="24" /></a>&nbsp;
-	<a target="_top" onclick="keepRotating = false;" href="https://twitter.com/dcongerphoto"><img src="images/icons/twitter-24.png" style="background-color: #00ACED; border-width: 0px;" width="24" height="24" /></a>&nbsp;
-	<a target="_top" onclick="keepRotating = false;" href="https://instagram.com/dcongerphoto"><img src="images/icons/instagram-24.png" style="background-color: #3F729B; border-width: 0px;" width="24" height="24" /></a>&nbsp;
-	<a target="_top" onclick="keepRotating = false;" href="mailto:david@davidconger.com"><img src="images/icons/email-24.png" style="background-color: #3B5998; border-width: 0px;" width="24" height="24" /></a>
-</div>
+	<p class="siteFooter">
+		Copyright 2008-2026 | David Conger, LLC | All Rights Reserved<br>
+		Not for distribution or reuse without permission.
+	</p>
+</footer>
 
 </body>
 

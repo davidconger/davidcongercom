@@ -144,7 +144,7 @@ hr {
 }
 
 .headerTextPre {
-	letter-spacing: 5px;
+	letter-spacing: clamp(1px, 1.2vw, 5px);
 	font-size: clamp(11px, 2.6vw, 16px);
 }
 
@@ -165,6 +165,12 @@ hr {
 .socialLinks {
 	padding-top: 12px;
 	position: relative;
+	text-align: center;
+}
+
+/* Top-level page navigation (home page). Replaces an inline-styled div. */
+.siteNav {
+	padding-top: 20px;
 	text-align: center;
 }
 
@@ -465,32 +471,64 @@ hr {
 
 /* --------------------------------------------------------------------------
    Home page feature rotator
+
+   Previously this was three absolutely-positioned layers centred with
+   `left:50%; margin-left:-320px`, which hard-coded a 640px stage and pushed
+   the caption to a fixed `top:380px`. It is now a normal centred block with
+   the caption overlaid on the bottom of the photo, so it scales on a phone.
    -------------------------------------------------------------------------- */
+
+.mainStage {
+	margin-top: 25px;
+	background: url("../images/2015-background.jpg") repeat;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
 
 .mainImages {
 	position: relative;
-	margin: 0 auto;
-	max-width: var(--dc-feature-max);
-}
-
-.mainImageOuter {
 	width: 100%;
 	max-width: var(--dc-feature-max);
 	margin: 0 auto;
+	/* Flex items default to min-width:auto, which refuses to shrink below the
+	   photo's intrinsic 640px and forces the whole page to scroll sideways on
+	   a phone. */
+	min-width: 0;
+	/* Revealed by js/homerotate.js once the first photo has been assigned. */
+	visibility: hidden;
+}
+
+.mainImageLink {
+	display: block;
+	position: relative;
+	line-height: 0;
+}
+
+.mainImageLink img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border: 0;
 }
 
 .mainTextOuter {
-	width: 100%;
-	max-width: var(--dc-feature-max);
-	margin: 0 auto;
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	text-align: right;
+	line-height: normal;
 }
 
 .mainTextColor {
+	display: inline-block;
+	max-width: 100%;
 	background-color: var(--dc-panel);
 	min-height: 40px;
 	padding: 6px 10px 6px 20px;
 	text-align: right;
-	display: inline-block;
+	color: var(--dc-fg);
 }
 
 .mainTextArtist {
@@ -502,26 +540,51 @@ hr {
 }
 
 .circlesContainer {
-	padding-top: 20px;
+	padding-top: 40px;
 	text-align: center;
 	position: relative;
 	margin: 0 auto;
 }
 
 /* Unprefixed border-radius: the -webkit-/-moz- variants were required only by
-   browsers released before 2011. */
+   browsers released before 2011. The dots are now <button> elements rather
+   than <div onclick>, so they are keyboard reachable. */
 .circle {
 	width: 12px;
 	height: 12px;
+	padding: 0;
+	border: 0;
 	border-radius: 6px;
 	background: #646464;
 	display: inline-block;
 	cursor: pointer;
-	margin: 0 1px;
+	margin: 0 2px;
 }
 
 .circleSelected {
 	background: #b4b4b4;
+}
+
+/* --------------------------------------------------------------------------
+   Featured photographs mosaic (galleries/featured.htm)
+
+   Replaces two fixed 650px tables of mixed 150x100 and 100x150 thumbnails.
+   -------------------------------------------------------------------------- */
+
+.featuredGrid {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 4px;
+	max-width: 680px;
+	margin: 0 auto;
+	padding: 10px 0;
+}
+
+.featuredGrid img {
+	border: 0;
+	flex: none;
 }
 
 /* --------------------------------------------------------------------------

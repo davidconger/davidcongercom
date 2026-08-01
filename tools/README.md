@@ -51,6 +51,43 @@ markup still depends on.
 node tools/css-selector-diff.js <dir-of-old-css> css/site.css
 ```
 
+## asset-census.js
+
+Counts how many pages reference each script and stylesheet, and names the
+referencing pages for rarely-used assets so a deletion can be justified rather
+than guessed at.
+
+```bash
+node tools/asset-census.js . --list-under 3
+```
+
+## layout-probe.js
+
+Loads a page in headless Edge over the DevTools protocol and reports whether the
+document scrolls horizontally, **which elements are wider than the viewport**,
+plus console errors and failed requests. Optionally writes a screenshot.
+
+Uses Node's built-in WebSocket, so it needs no npm packages.
+
+```bash
+node tools/serve.js . 8099          # in one shell
+node tools/layout-probe.js "http://localhost:8099/index.htm" 390 900 --shot out.png
+```
+
+Screenshots are captured through the protocol rather than Edge's `--screenshot`
+flag, because `--window-size` does not reliably set the layout viewport in
+headless Edge and produces misleadingly clipped images.
+
+## extract-featured.js
+
+One-shot migration that pulled the hard-coded `imageArray` out of the old
+`js/homerotate.js` into `js/featured-images.json`, dropping entries whose photo
+no longer exists.
+
+```bash
+node tools/extract-featured.js js/homerotate.js js/featured-images.json
+```
+
 ## serve.js
 
 Minimal static server for previewing the site locally, with IIS-like directory →
