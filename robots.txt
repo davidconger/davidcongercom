@@ -7,10 +7,9 @@
 User-agent: *
 Allow: /
 
-# The original 2009-2011 meet-and-greet tree. Its events now live under
-# /you/2009/, /you/2010/ and /you/2011/; this copy is kept as the source
-# archive only and is not deployed.
-Disallow: /you_old/
+# The original 2009-2011 meet-and-greet tree has been converted into
+# /you/2009/, /you/2010/ and /you/2011/ and removed. It was never deployed,
+# so no rule is needed for it.
 
 # Removed from the source tree but still present on the server, which is only
 # ever added to over FTP. These stay until the server copy is cleaned up.

@@ -72,4 +72,3 @@ jobs:
             **/node_modules/**
             **/tools/**
             **/*.md
-            you_old/**
