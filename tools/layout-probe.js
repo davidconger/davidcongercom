@@ -172,6 +172,33 @@ async function main() {
     await new Promise((res) => setTimeout(res, 700));
   }
 
+  // --hover moves a real pointer over the first element matching a selector.
+  // CSS :hover cannot be triggered by a synthetic JavaScript event, so states
+  // that depend on it are invisible to --eval; this dispatches through the
+  // input pipeline instead, which does set :hover.
+  const hoverIdx = process.argv.indexOf('--hover');
+  if (hoverIdx > -1 && process.argv[hoverIdx + 1]) {
+    const selector = process.argv[hoverIdx + 1];
+    const { result } = await send('Runtime.evaluate', {
+      expression: `(function () {
+        var el = document.querySelector(${JSON.stringify(selector)});
+        if (!el) return null;
+        el.scrollIntoView({ block: 'center' });
+        var r = el.getBoundingClientRect();
+        return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+      }())`,
+      returnByValue: true,
+    });
+    if (!result.value) {
+      console.log('\n--hover: no element matched ' + selector);
+    } else {
+      await send('Input.dispatchMouseEvent', {
+        type: 'mouseMoved', x: result.value.x, y: result.value.y, buttons: 0,
+      });
+      await new Promise((res) => setTimeout(res, 900));
+    }
+  }
+
   const shotIdx = process.argv.indexOf('--shot');
   if (shotIdx > -1 && process.argv[shotIdx + 1]) {
     // Captured through CDP rather than --screenshot, because --window-size does
@@ -181,11 +208,20 @@ async function main() {
     // --clip limits the capture to the viewport instead of the whole document,
     // which is what you want on a long lazy-loaded page: the images below the
     // fold have not been fetched, so a full-page capture is mostly empty boxes.
+    //
+    // The clip rectangle is in page coordinates, not viewport coordinates, so
+    // it has to be offset by the current scroll position -- otherwise a --eval
+    // snippet that scrolls the page is silently ignored by the capture.
     const clip = process.argv.includes('--clip');
-    const shot = await send('Page.captureScreenshot',
-      clip
-        ? { format: 'png', clip: { x: 0, y: 0, width, height, scale: 1 } }
-        : { format: 'png', captureBeyondViewport: true });
+    let shotArgs = { format: 'png', captureBeyondViewport: true };
+    if (clip) {
+      const { result: pos } = await send('Runtime.evaluate', {
+        expression: '({x: window.scrollX, y: window.scrollY})',
+        returnByValue: true,
+      });
+      shotArgs = { format: 'png', clip: { x: pos.value.x, y: pos.value.y, width, height, scale: 1 } };
+    }
+    const shot = await send('Page.captureScreenshot', shotArgs);
     fs.writeFileSync(process.argv[shotIdx + 1], Buffer.from(shot.data, 'base64'));
     console.log('\nScreenshot: ' + process.argv[shotIdx + 1]);
   }

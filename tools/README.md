@@ -86,17 +86,37 @@ Two flags help with long or interactive pages:
 
 | Flag | Effect |
 |---|---|
-| `--clip` | Capture the viewport only, instead of the full document. Full-page capture on a long lazy-loading page mostly yields empty boxes below the fold. |
-| `--eval <js-or-path>` | Run a snippet in the page, wait 700ms, then capture — so an advanced rotator or an opened menu can be photographed. |
+| `--clip` | Capture the current viewport only, instead of the whole document. Full-page capture on a long lazy-loading page mostly yields empty boxes below the fold. |
+| `--eval <js-or-path>` | Run a snippet in the page, wait, then capture — so an advanced rotator or a scrolled sticky header can be photographed. |
+| `--hover <selector>` | Move a real pointer over the first matching element before capturing. |
 
 Pass `--eval` a **path to a `.js` file** rather than inline JavaScript.
 PowerShell strips embedded double quotes when passing arguments to a native
 command, so an inline snippet arrives silently corrupted and the screenshot looks
 like the flag was ignored.
 
+The snippet's completion value is awaited, so a script that needs to settle
+before the capture can end with a promise:
+
+```js
+window.scrollTo(0, 900);
+new Promise(function (resolve) { setTimeout(resolve, 1600); });
+```
+
+`--clip` offsets its rectangle by the page's current scroll position. The CDP
+clip rectangle is in page coordinates, not viewport coordinates, so without that
+offset a `--eval` snippet that scrolls has no effect on what gets captured.
+
+`--hover` exists because **CSS `:hover` cannot be triggered by a synthetic
+JavaScript event** — dispatching a `mouseover` from `--eval` does nothing to the
+selector. It goes through `Input.dispatchMouseEvent` instead, which does set
+`:hover`.
+
 ```bash
-node tools/layout-probe.js "http://localhost:8099/_proto/stream/2019/" 1440 1120 \
-  --shot out.png --clip --eval _proto/stream/advance-rotators.js
+node tools/layout-probe.js "http://localhost:8099/_proto/stream/2019/" 1440 900 \
+  --shot out.png --clip \
+  --eval _proto/stream/scroll-past-header.js \
+  --hover ".showGrid .show:nth-child(4) .showFrame"
 ```
 
 ## build-stream.js
@@ -125,12 +145,23 @@ incomplete and must never be trusted as the event list.**
 Only landscape frames are used. `jpegSize()` reads dimensions straight from the
 JPEG SOF marker, so no image library is needed.
 
+The caption names the venue alone. Descriptions read
+`Artist[, Tour], Venue, City, ST`, so the venue is third from last — except in
+the entries that omit the city, where counting positions returns the tour name.
+`venueVocabulary()` therefore learns which names are venues by counting where
+each one lands across all 4,822 descriptions: a name that appears in the venue
+slot more often than the city slot is a venue. Roughly 140 come out, and the
+malformed entries are then resolved against that list.
+
 Each show's caption colours are sampled by `sample-overlay-colors.ps1` and
 written into the page as `--cap-top`, `--cap-bot` and `--cap-fg` custom
-properties. `captionFill()` desaturates the sample 35% toward its channel mean —
-otherwise one saturated stage light produces a violently coloured caption — then
-pushes it toward black or white depending on luminance, flipping the text colour
-to match.
+properties. `captionFill()` caps the chroma of the sample — scaling the channel
+spread only when it exceeds a ceiling, so a muted photograph keeps its colour and
+only a violently lit one is pulled back — then pushes it toward black or white
+depending on luminance, flipping the text colour to match.
+
+**Do not lower the bottom alpha of the caption gradient.** It is 0.995 because
+0.96 lets the burned-in watermark ghost back through. See `_proto/README.md`.
 
 ## sample-overlay-colors.ps1
 

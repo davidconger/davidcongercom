@@ -6,37 +6,312 @@
    a grid of 240x160 crops.
 
    Layered on top of css/site.css, which supplies the palette and the page
-   chrome. Nothing here overrides an existing rule.
+   chrome. This file loads only on prototype pages, so where it does restyle
+   shared chrome -- the header bar and the social icons -- nothing else on the
+   site is affected.
    -------------------------------------------------------------------------- */
 
-.stream {
-	/* Two 640px frames plus the gutter, and no wider: the photographs are
-	   640px originals, so a wider grid would only upscale them. */
+/* The frame width every band of the page shares: two 640px photographs plus
+   the gutter between them. Anything full-bleed against the browser edge reads
+   as detached from the content once the grid is centred. */
+.stream,
+.streamBar {
 	max-width: 1348px;
 	margin: 0 auto;
+}
+
+.stream {
 	padding: 0 24px 10px;
 }
 
-.streamHead {
-	text-align: center;
-	padding: 26px 0 22px;
-	line-height: 1.7;
+.streamBar {
+	padding: 0 24px;
+	box-sizing: border-box;
 }
 
-.streamYear {
+/* --------------------------------------------------------------------------
+   Sticky chrome
+
+   Two bands pin to the top of the window as the page scrolls: the utility bar
+   carrying Home and the social links, and below it the year. Neither is worth
+   scrolling back up for, and on a year of eighty shows that is a long way
+   back.
+
+   Both are translucent with a blur behind them, so photographs visibly pass
+   underneath rather than disappearing at a hard edge -- the point being that
+   the content is continuous and the chrome floats above it.
+   -------------------------------------------------------------------------- */
+
+:root {
+	--dc-topbar-h: 52px;
+}
+
+.streamTopBar {
+	position: sticky;
+	top: 0;
+	z-index: 40;
+	background: rgba(26, 26, 26, 0.72);
+	backdrop-filter: blur(16px) saturate(140%);
+	-webkit-backdrop-filter: blur(16px) saturate(140%);
+	border-bottom: 1px solid rgba(255, 255, 255, 0);
+	transition: border-color 240ms ease, background-color 240ms ease;
+}
+
+.streamTopBar.is-collapsed {
+	background: rgba(24, 24, 24, 0.82);
+	border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+.topBarInner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: var(--dc-topbar-h);
+}
+
+/* The masthead in one line. It stays out of the bar until the full masthead
+   has scrolled past, at which point it takes over the identity so the bar is
+   never just two anonymous controls. */
+.brandCompact {
+	flex: 1 1 auto;
+	min-width: 0;
+	text-align: center;
+	font-family: var(--dc-font-display);
+	font-size: 13px;
+	letter-spacing: 1.6px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: #a6a6a6;
+	opacity: 0;
+	transform: translateY(6px);
+	transition: opacity 260ms ease, transform 260ms ease;
+	pointer-events: none;
+}
+
+.streamTopBar.is-collapsed .brandCompact {
+	opacity: 1;
+	transform: none;
+}
+
+.brandCompactName {
+	color: var(--dc-fg, #f2f2f2);
+}
+
+.brandCompactPlace::before {
+	content: "|";
+	padding: 0 7px;
+	color: #6f6f6f;
+}
+
+@media (max-width: 620px) {
+	.brandCompact {
+		display: none;
+	}
+}
+
+/* --------------------------------------------------------------------------
+   Masthead
+
+   Sits lower than the utility bar rather than crowding it. The name carries
+   the block: the line above and the line below are supporting detail, so they
+   sit a step back in contrast rather than competing at full strength.
+   -------------------------------------------------------------------------- */
+
+.streamHeader {
+	padding-top: 54px;
+}
+
+.streamHeader .headerTextPre,
+.streamHeader .headerTextSub {
+	color: #a6a6a6;
+}
+
+.streamHeader .headerTextMain {
+	color: var(--dc-fg, #f2f2f2);
+}
+
+/* Mailto that does not announce itself. It is plainly part of the sentence
+   until the pointer reaches it, at which point it behaves like a link. */
+.quietLink {
+	color: inherit;
+	text-decoration: none;
+}
+
+.quietLink:hover,
+.quietLink:focus-visible {
+	color: var(--dc-fg, #ffffff);
+	text-decoration: underline;
+}
+
+.streamFooter {
+	color: #8a8a8a;
+	padding-top: 44px;
+}
+
+/* --------------------------------------------------------------------------
+   Social icons
+
+   Was five PNGs on coloured tiles. Now four inline SVGs -- Instagram, X,
+   Facebook and a Fluent mail glyph -- drawn in currentColor so they sit
+   quietly in the header and take their brand colour only on hover. Flickr is
+   gone.
+   -------------------------------------------------------------------------- */
+
+.streamSocial {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 16px;
+}
+
+.streamSocial .socialLink {
+	display: inline-flex;
+	align-items: center;
+	color: #8a8a8a;
+	line-height: 0;
+	border: 0;
+	transition: color 180ms ease, transform 180ms ease;
+}
+
+.streamSocial .socialLink:hover,
+.streamSocial .socialLink:focus-visible {
+	transform: translateY(-1px);
+}
+
+.streamSocial .socialInstagram:hover,
+.streamSocial .socialInstagram:focus-visible {
+	color: #e4405f;
+}
+
+/* The X mark is black, which is invisible here, so it goes to full white. */
+.streamSocial .socialX:hover,
+.streamSocial .socialX:focus-visible {
+	color: #ffffff;
+}
+
+.streamSocial .socialFacebook:hover,
+.streamSocial .socialFacebook:focus-visible {
+	color: #1877f2;
+}
+
+.streamSocial .socialMail:hover,
+.streamSocial .socialMail:focus-visible {
+	color: #4d9fff;
+}
+
+.streamSocial .socialLink:focus-visible {
+	outline: 2px solid #0066ff;
+	outline-offset: 4px;
+	border-radius: 3px;
+}
+
+/* The mail glyph has a regular and a filled state; the brand marks are solid
+   shapes already, so for them the colour shift is the whole tell. */
+.streamSocial .socialMail .iconFilled {
+	display: none;
+}
+
+.streamSocial .socialMail:hover .iconRegular,
+.streamSocial .socialMail:focus-visible .iconRegular {
+	display: none;
+}
+
+.streamSocial .socialMail:hover .iconFilled,
+.streamSocial .socialMail:focus-visible .iconFilled {
+	display: inline;
+}
+
+/* --------------------------------------------------------------------------
+   Section title and year navigation
+
+   Was four stacked lines -- title, "View: Festivals | By Date", the year, then
+   the adjacent years spelled out as links. That is more furniture than a page
+   of photographs needs. What is left states the section, states the year, and
+   offers a direction.
+
+   The year then pins below the utility bar, so it stays answerable at any
+   scroll depth: on a page this long "which year am I in" is a real question.
+   -------------------------------------------------------------------------- */
+
+.streamTitle {
+	text-align: center;
+	padding: 24px 0 4px;
+}
+
+.streamTitleText {
+	display: block;
+	font-family: var(--dc-font-display);
+	font-size: 17px;
+	font-weight: 600;
+	letter-spacing: 3px;
+	color: var(--dc-fg, #f2f2f2);
+}
+
+.yearBar {
+	position: sticky;
+	top: var(--dc-topbar-h);
+	z-index: 30;
+	padding: 12px 0;
+	background: rgba(26, 26, 26, 0);
+	backdrop-filter: blur(0px);
+	-webkit-backdrop-filter: blur(0px);
+	transition: background-color 240ms ease, box-shadow 240ms ease;
+}
+
+/* Only once it is actually pinned does it need to separate itself from the
+   photographs passing beneath. Before that it is just a line on the page. */
+.yearBar.is-stuck {
+	background: rgba(26, 26, 26, 0.72);
+	backdrop-filter: blur(16px) saturate(140%);
+	-webkit-backdrop-filter: blur(16px) saturate(140%);
+	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+}
+
+.yearNav {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+}
+
+.yearLabel {
+	min-width: 66px;
 	font-size: 19px;
 	letter-spacing: 3px;
-	color: var(--dc-fg);
+	color: #a6a6a6;
 }
 
-.streamNav {
-	font-size: 12px;
-	letter-spacing: 1px;
-	color: #949494;
+.yearStep {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	color: #8a8a8a;
+	line-height: 0;
+	text-decoration: none;
+	transition: color 180ms ease, background-color 180ms ease;
 }
 
-.streamFoot {
-	padding-top: 34px;
+a.yearStep:hover,
+a.yearStep:focus-visible {
+	color: var(--dc-fg, #ffffff);
+	background-color: rgba(255, 255, 255, 0.08);
+}
+
+a.yearStep:focus-visible {
+	outline: 2px solid #0066ff;
+	outline-offset: 2px;
+}
+
+/* The far end of the archive. The arrow stays in place so the control does not
+   change shape, but it reads as unavailable. */
+.yearStep.is-disabled {
+	color: #4a4a4a;
+	pointer-events: none;
 }
 
 .showGrid {
@@ -82,6 +357,15 @@
 
 .show {
 	min-width: 0;
+	transition: opacity 280ms ease;
+}
+
+/* Hovering one photograph steps the others back, so the eye has somewhere to
+   rest on a page that is otherwise eighty competing frames. The dim applies to
+   the whole show -- caption and rotator included -- because dimming only the
+   image would leave the captions floating at full strength. */
+.showGrid:hover .show:not(:hover):not(:focus-within) {
+	opacity: 0.62;
 }
 
 /* The frame carries the shadow rather than the image, so the crossfade below
@@ -101,7 +385,7 @@
 	position: relative;
 	text-decoration: none;
 	opacity: 0;
-	transition: opacity 380ms ease;
+	transition: opacity 560ms ease;
 }
 
 /* The first slide stays in flow so it sets the frame's height; the rest are
@@ -149,13 +433,20 @@
 	padding: 7px 12px 8px 22px;
 	text-align: right;
 	line-height: 1.35;
-	background-image: linear-gradient(180deg, var(--cap-top, rgba(42, 42, 42, 0.78)) 0%, var(--cap-bot, rgba(42, 42, 42, 0.99)) 58%);
-	color: var(--cap-fg, #ffffff);
+	/* The panel is deliberately lighter than it needs to be at the top and as
+	   opaque as it must be at the bottom. Measured on the frame, the wordmark
+	   starts about a third of the way down the panel, so that is where the
+	   ramp finishes -- everything above it can stay translucent and let the
+	   photograph read through. Below it there is no latitude at all: at 0.96
+	   the wordmark ghosts back into view, because a few percent of a white
+	   mark over a dark panel is still legible. */
+	background-image: linear-gradient(180deg, var(--cap-top, rgba(38, 38, 38, 0.45)) 0%, var(--cap-bot, rgba(30, 30, 30, 0.995)) 33%);
+	color: var(--cap-fg, rgba(255, 255, 255, 0.88));
 	font-size: 12px;
 	/* Photographs are noisy, and a tinted panel can land within a few percent
 	   of the pixels beside it. A hairline of light along the top edge keeps
 	   the panel legible without drawing a border. */
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .showArtist {
@@ -166,14 +457,14 @@
 
 .showVenue {
 	display: block;
-	opacity: 0.92;
+	opacity: 0.82;
 }
 
 .showDate {
 	display: block;
 	font-size: 10px;
 	letter-spacing: 0.5px;
-	opacity: 0.78;
+	opacity: 0.66;
 }
 
 /* --------------------------------------------------------------------------
