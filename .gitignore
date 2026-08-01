@@ -1,0 +1,18 @@
+# Photography originals — ~80,000 files / 5.3 GB.
+# Deliberately untracked: git is here to version the site's code and markup,
+# not the image archive. The images live on the Azure App Service disk and in
+# the local OneDrive copy.
+*.jpg
+*.jpeg
+*.JPG
+*.JPEG
+
+# FrontPage Server Extensions binary databases (1pvt/) — 140 MB, dead.
+*.btr
+*.lck
+
+# Windows / editor noise
+Thumbs.db
+desktop.ini
+*.tmp
+~$*

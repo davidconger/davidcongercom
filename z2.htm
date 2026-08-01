@@ -1,0 +1,203 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml" xmlns:og="https://opengraphprotocol.org/schema/" xmlns:fb="https://ogp.me/ns/fb#">
+
+<head>
+<meta http-equiv="Content-Language" content="en-us" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>david conger | photography | concerts, music, events | seattle</title>
+<meta name="description" content="The concert, music, and event photography of David Conger, Seattle, WA, USA." />
+<meta name="keywords" content="Concert,Photo,Photography,Music,Event,Live,Performance,Seattle,David Conger" />
+<meta name="author" content="David Conger, LLC" />
+<style type="text/css">
+
+.hind {
+	
+	font-family: 'Hind', sans-serif;
+	font-weight: 600;
+	font-size: 48px;
+}
+
+,hind400 {
+	
+	font-family: 'Hind', sans-serif;
+	font-weight: 400;
+	font-size: 16px;
+}
+
+
+a {
+	color: #FFFFFF;
+}
+a:visited {
+	color: #FFFFFF;
+}
+a:hover {
+	color: #0066FF;
+}
+
+.special{
+	width: 100%;
+	border: 3px #FFFFFF solid;
+}
+.special:hover{
+	border: 3px #0066FF solid;	
+}
+.style1 {
+	font-weight: normal;
+	font-size: small;
+	background-image: url('images/alertbackground.png');
+}
+.style2 {
+	font-size: x-small;
+}
+.style3 {
+	border-width: 0px;
+}
+.style4 {
+	text-align: right;
+}
+.auto-style4 {
+	background-image: url('galleries/2015/05/newkidsontheblock/newkidsontheblock-01.jpg');
+}
+.auto-style5 {
+	text-align: right;
+	border-width: 0;
+	background-color: #808080;
+}
+.auto-style7 {
+	font-family: 'Hind', sans-serif;
+	font-weight: 600;
+	font-size: 56px;
+	letter-spacing: 2px;
+}
+.auto-style8 {
+	font-family: 'Hind', sans-serif;
+	letter-spacing: 5px;
+}
+.auto-style9 {
+	font-family: 'Hind', sans-serif;
+	letter-spacing: 2px;
+}
+.auto-style10 {
+	background-image: url('images/2015-background.jpg');
+}
+</style>
+
+<meta property="og:title" content="david conger | photography"/>
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="www.davidconger.com"/>
+<meta property="fb:admins" content="17701228"/>
+<meta property="fb:app_id" content="139826329427348"/>
+<meta property="og:image" content="https://davidconger.com/images/like/fb.jpg"/>
+<meta property="og:url" content="https://www.davidconger.com/"/>
+<meta property="og:description" content="Music and event photography by David Conger (Seattle, WA)."/>
+
+<link href='https://fonts.googleapis.com/css?family=Hind:400,600' rel='stylesheet' type='text/css' />
+
+<script type="text/javascript" src="js/azureinsights.js"></script>
+
+<script type="text/javascript" language="javascript">
+var imageArray = new Array(
+"galleries/2015/05/echosmith/echosmith-01.jpg;May 29, 2015;Echosmith;at Green River Community College;400",
+"galleries/2015/05/newkidsontheblock/newkidsontheblock-01.jpg;May 6, 2015;New Kids on the Block;at the Tacoma Dome;350"
+);
+
+var activeImage = 0;
+
+var lastId = -1;
+var totalRotations = 0;
+
+var keepRotating = false;
+
+function RotateImage()
+{
+	var nextId = activeImage + 1;
+	if (nextId >= imageArray.length)
+	{
+		nextId = 0;
+	}
+	
+	var splitString = imageArray[nextId].split(';');
+	
+    document.getElementById("focusImage").style.backgroundImage = 'url(' + splitString[0] + ')';
+    document.getElementById("focusArtist").innerHTML = splitString[2];
+    document.getElementById("focusVenue").innerHTML = splitString[3]; 
+    document.getElementById("focusDate").innerHTML = splitString[1]; 
+    document.getElementById("focusTextBoxSize").style.width = splitString[4] + 'px'; 
+    
+    activeImage = nextId;
+    
+    if (keepRotating && totalRotations < 15)
+    {
+	    window.setTimeout("RotateImage()",4000)
+    }
+    
+    totalRotations++;
+}
+
+function Start()
+{
+	window.setTimeout("RotateImage()",1500)
+	keepRotating = true;
+}
+</script>
+
+
+</head>
+
+<body onload="Start()" style="color: #FFFFFF; background-color: #2A2A2A; font-family: Arial, Helvetica, sans-serif; text-align: center;">
+
+<p class="style4">
+</p>
+<p>&nbsp;</p>
+<div>
+<div class="auto-style8">the concert &amp; event photography of</div>
+<div class="auto-style7" style="margin-top:-15px">David Conger</div>
+<div class="auto-style9" style="margin-top:-20px">david@davidconger.com | Seattle, WA</div>
+</div>
+<div>&nbsp;</div>
+
+<table cellpadding="0" cellspacing="0" class="auto-style10" style="width: 100%; height: 425px"><tr><td>
+
+<table cellpadding="0" cellspacing="0" class="auto-style4" style="width: 640px; height: 425px" align="center" id="focusImage">
+	<tr>
+		<td style="height: 380px" colspan="3"></td>
+	</tr>
+	<tr>
+		<td style="height: 40px"></td>
+		<td style="height: 40px; width: 350px;" class="auto-style5" id="focusTextBoxSize">
+			<span id="focusArtist" style="font-weight:bold">Artist</span> <span id="focusVenue">Venue</span><br/><span style="font-size: 10px" id="focusDate">Date</span>
+		</td>
+		<td style="height: 40px; width: 10px;" class="auto-style5"></td>
+	</tr>
+	<tr>
+		<td style="height: 5px" colspan="3"></td>
+	</tr>
+</table>
+
+
+</td></tr></table>
+&nbsp;<p>
+<a href="catalog/index.htm" onclick="keepRotating = false;">View Concerts &amp; Event 
+Photos</a>&nbsp; 
+		<!--|&nbsp;
+		<a href="https://davidconger.tumblr.com/" onclick="keepRotating = false;">Blog</a>&nbsp; -->
+		|&nbsp; <a href="you/index.htm">Get Your Meet &amp; Greet Photo</a>&nbsp; |&nbsp;
+		<a href="about.htm">Hire Dave</a> </p>
+<div style="text-align:center; padding-top:20px">
+	<a target="_top" href="https://www.facebook.com/pages/david-conger-photography/139826329427348"><img src="images/icons/facebook-24.png" style="background-color: #3B5998; border-width: 0px;" width="24" height="24" /></a>&nbsp;
+	<a target="_top" href="https://www.flickr.com/photos/davidconger"><img src="images/icons/flickr-24.png" style="background-color: #0063DB; border-width: 0px;" width="24" height="24" /></a>&nbsp;
+	<a target="_top" href="https://twitter.com/dcongerphoto"><img src="images/icons/twitter-24.png" style="background-color: #00ACED; border-width: 0px;" width="24" height="24" /></a>&nbsp;
+	<a target="_top" href="https://instagram.com/dcongerphoto"><img src="images/icons/instagram-24.png" style="background-color: #3F729B; border-width: 0px;" width="24" height="24" /></a>&nbsp;
+	<a target="_top" href="mailto:david@davidconger.com"><img src="images/icons/email-24.png" style="background-color: #3B5998; border-width: 0px;" width="24" height="24" /></a>
+</div>
+<!--<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#xfbml=1&appId=139826329427348";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>-->
+</body>
+
+</html>

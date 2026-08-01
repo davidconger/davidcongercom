@@ -1,0 +1,5 @@
+# This site is ~20 years of legacy files with mixed CRLF endings and UTF-8 BOMs.
+# Disable all of git's text/eol conversion so every tracked file round-trips
+# byte-for-byte. Without this, checkout on Windows can rewrite line endings and
+# produce spurious diffs across thousands of archive pages.
+* -text

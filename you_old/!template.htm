@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml" xmlns:og="https://opengraphprotocol.org/schema/" xmlns:fb="https://www.facebook.com/2008/fbml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>You {0} | davidconger.com | photography</title>
+<link rel="stylesheet" href="you.css" type="text/css" media="screen">
+<script type="text/javascript">
+function streamPublish(imagePath){
+ imagePath = imagePath.replace('sm/','tp/');
+
+ FB.ui(
+   {
+     method: 'stream.publish',
+     message: '',
+     attachment: {
+       name: '{0}',
+       caption: '{1}',
+	   media: [{       
+	     type: 'image',
+	     src: imagePath,
+	     href: '{2}'
+	   }]
+     },
+     action_links: [
+       { text: 'View Concert Photos', href: '{3}' }
+     ],
+     user_message_prompt: 'Add a message to your Photo'
+   },
+   function(response) { }
+ );
+}
+</script>
+</head>
+
+<body style="color: #FFFFFF; background-color: #2A2A2A; font-family: Arial, Helvetica, sans-serif; text-align: center;">
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p style="text-align:center;">
+<a href="index.htm">
+<img src="https://davidconger.com/images/header.png" width="710" height="75" style="border-width: 0px" /></a></p>
+<p style="text-align: center; ">
+<span class="title-name">You {0}</span><br />
+{1}<br/><br/>
+<span class="instructions">Click on an image to post it to your Facebook wall.</span><br/><br/>
+<fb:login-button perms="publish_stream"></fb:login-button></p>
+
+<table cellspacing="0" cellpadding="0" style="margin-left:auto; margin-right:auto;">
+	<tr>
+		<td style="width: {4}px" valign="top">
+{5}
+		</td>
+		<td style="width: {6}px;" valign="top">
+{7}
+		</td>
+	</tr>
+</table>
+
+<div id="fb-root" style="display: none"></div>
+<script src="https://connect.facebook.net/en_US/all.js"></script>
+<script>
+  FB.init({appId: '114861015219263', status: true, cookie: true, xfbml: true});
+  FB.Event.subscribe('auth.sessionChange', function(response) {
+    if (response.session) {
+      // A user has logged in, and a new cookie has been saved
+    } else {
+      // The user has logged out, and the cookie has been cleared
+    }
+  });
+</script>
+</body>
+
+</html>
