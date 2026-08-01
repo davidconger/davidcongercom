@@ -49,15 +49,32 @@
 
 :root {
 	--dc-topbar-h: 52px;
+	/* How far the caption hangs below the photograph, and the shortest it is
+	   allowed to be. Between them these decide how much of the image the panel
+	   covers: min-height minus drop is what sits on the photograph, and that
+	   has to stay above the ~38px the wordmark occupies. The minimum matters
+	   because captions with no venue are a line shorter, and a panel anchored
+	   below the frame would otherwise ride up and expose the mark. */
+	--cap-drop: 16px;
+	--cap-min: 64px;
+	/* And how far it sits in from the right edge, so it reads as a card resting
+	   on the photograph rather than something welded to the corner. There is
+	   not much room to play with: measured at 6x zoom on frames from 2018,
+	   2019 and 2020, the wordmark ends a consistent 8.5-9px from the right
+	   edge of a 640px frame -- 1.37% of its width. The inset is a percentage
+	   rather than a length so that margin holds at every frame size; a fixed
+	   6px would have eaten all of it by the time the frame reached 400px. At
+	   640 this works out to about 5.8px. */
+	--cap-inset: 0.9%;
 }
 
-/* The utility bar starts below the top of the window, near the masthead it
-   belongs to, and travels up as the page scrolls until it pins. It carries no
-   fill until it collapses: an opaque bar would swallow the masthead 50px
-   before the masthead reached the top of the window, and the bar's middle is
-   empty until the collapsed name arrives there anyway. */
+/* The utility bar is pinned from the first frame -- it starts where it used to
+   end up after scrolling, and never moves. It carries no fill until it
+   collapses: an opaque bar would swallow the masthead 50px before the masthead
+   reached the top of the window, and the bar's middle is empty until the
+   collapsed name arrives there anyway. */
 body {
-	padding-top: 30px;
+	padding-top: 0;
 }
 
 .streamTopBar {
@@ -69,11 +86,25 @@ body {
 	transition: border-color 240ms ease, background-color 240ms ease;
 }
 
+/* Collapsed, the bar frosts whatever is passing beneath it. But only while it
+   is alone: once the year bar pins directly below, the two rows have to read
+   as one surface, and two stacked translucent bars cannot do that. Each one
+   blurs its own backdrop, so they sample different content and the join
+   between them shows up as a hard line with a mismatched band underneath.
+   The handover is below -- the year bar grows a single pane tall enough to
+   cover both rows, and this one gets out of its way. */
 .streamTopBar.is-collapsed {
 	background-color: rgba(42, 42, 42, 0.78);
 	backdrop-filter: blur(16px) saturate(140%);
 	-webkit-backdrop-filter: blur(16px) saturate(140%);
 	border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+.streamTopBar.is-collapsed:has(~ .yearBar.is-stuck) {
+	background-color: transparent;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	border-bottom-color: transparent;
 }
 
 .topBarInner {
@@ -136,7 +167,10 @@ body {
    -------------------------------------------------------------------------- */
 
 .streamHeader {
-	padding-top: 11px;
+	/* Halved twice from the original 22px. The masthead sits just under the
+	   icon row; the buffer below it is what separates it from the year, and
+	   that one is deliberately larger. */
+	padding-top: 6px;
 	padding-bottom: 17px;
 	transition: opacity 200ms ease;
 }
@@ -289,7 +323,9 @@ body {
 	z-index: 30;
 	padding: 6px 0;
 	background-color: rgba(42, 42, 42, 0);
-	transition: background-color 240ms ease, box-shadow 240ms ease, padding 240ms ease;
+	/* Reserved so the hairline arriving on pin does not shift the row. */
+	border-bottom: 1px solid transparent;
+	transition: background-color 240ms ease, border-color 240ms ease, padding 240ms ease;
 }
 
 /* Only once it is actually pinned does it need to separate itself from the
@@ -297,12 +333,34 @@ body {
    Pinned, it also steps down a size: it has stopped being the thing you are
    looking at and become a marker, and the height it gives back goes to the
    photographs. */
-.yearBar.is-stuck {
-	padding: 6px 0;
-	background-color: rgba(42, 42, 42, 0.72);
+/* Stuck, the year bar stops painting its own background and instead puts up a
+   single pane that reaches back up over the top bar, so both rows are frosted
+   by one filter sampling one backdrop. That is the only way the two match:
+   glass cannot be tiled. The pane sits behind the bar's own content but inside
+   its stacking context, so the year still reads over it, and the top bar --
+   transparent by then -- lets it show through from above.
+
+   It carries the hairline too, at the bottom of the pair rather than between
+   them. */
+.yearBar.is-stuck::before {
+	content: "";
+	position: absolute;
+	inset: calc(-1 * var(--dc-topbar-h)) 0 0 0;
+	z-index: -1;
+	background-color: rgba(42, 42, 42, 0.78);
 	backdrop-filter: blur(16px) saturate(140%);
 	-webkit-backdrop-filter: blur(16px) saturate(140%);
-	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.yearBar.is-stuck {
+	padding: 6px 0;
+}
+
+/* The top bar collapses a little before the year bar pins, so it keeps its own
+   hairline for that stretch and gives it up once the two become one surface. */
+.streamTopBar.is-collapsed:has(~ .yearBar.is-stuck) {
+	border-bottom-color: transparent;
 }
 
 .yearNav {
@@ -384,6 +442,11 @@ a.yearStep:focus-visible {
    The type scales with the frame; the panel's job of covering the watermark
    does not change, so min-width stays. */
 @media (max-width: 560px) {
+	:root {
+		--cap-drop: 13px;
+		--cap-min: 54px;
+	}
+
 	.stream {
 		padding: 14px 16px 10px;
 	}
@@ -402,6 +465,37 @@ a.yearStep:focus-visible {
 	}
 }
 
+/* At the small end the panel is competing with a frame barely 300px wide, so
+   every element steps down once more and the padding closes up. The point is
+   to keep it hugging the wordmark rather than growing into the picture: below
+   this width the three lines of text are what set the panel's height, not
+   --cap-min, so type size is the only lever left.
+
+   There is room for it. The wordmark is a fixed fraction of the frame -- the
+   bottom 8.7% -- so on a 288px frame it is 17px tall, and the panel still puts
+   about 35px on the image. --cap-inset needs no override at any width because
+   it is a percentage. */
+@media (max-width: 420px) {
+	:root {
+		--cap-drop: 11px;
+		--cap-min: 44px;
+	}
+
+	.showCaption {
+		padding: 4px 7px 5px 13px;
+		font-size: 10px;
+	}
+
+	.showArtist {
+		font-size: 11px;
+		text-underline-offset: 2px;
+	}
+
+	.showDate {
+		font-size: 8px;
+	}
+}
+
 .show {
 	min-width: 0;
 	transition: opacity 280ms ease;
@@ -410,7 +504,14 @@ a.yearStep:focus-visible {
 /* Hovering one photograph steps the others back, so the eye has somewhere to
    rest on a page that is otherwise eighty competing frames. The dim applies to
    the whole show -- caption and rotator included -- because dimming only the
-   image would leave the captions floating at full strength. */
+   image would leave the captions floating at full strength.
+
+   This does make every dimmed show a stacking context, which switches off the
+   caption's backdrop-filter for as long as the dim is applied. That is fine
+   now and was not before: the gradient does the masking, so losing the blur
+   costs a little softness in the panel's open corner and nothing else. An
+   overlay pseudo-element was tried here to avoid the stacking context and it
+   defeated the filter just as thoroughly. */
 .showGrid:hover .show:not(:hover):not(:focus-within) {
 	opacity: 0.62;
 }
@@ -469,9 +570,20 @@ a.yearStep:focus-visible {
 
 .showCaption {
 	position: absolute;
-	right: 0;
-	bottom: 0;
-	display: block;
+	right: var(--cap-inset);
+	/* The panel hangs off the bottom of the photograph. It only has to cover
+	   the wordmark, which is the bottom 9% of the frame; three lines of text
+	   are taller than that, and the surplus was sitting on the picture for no
+	   reason. Dropping it puts the surplus on the page instead. The join is
+	   invisible because the ramp is fully opaque long before the frame's edge,
+	   so the part over the photograph and the part over the page render the
+	   same colour. */
+	bottom: calc(-1 * var(--cap-drop));
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	box-sizing: border-box;
+	min-height: var(--cap-min);
 	text-decoration: none;
 	/* The burned-in davidconger.com wordmark starts 73% of the way across the
 	   frame, so the panel needs to reach at least that far left whatever the
@@ -483,25 +595,48 @@ a.yearStep:focus-visible {
 	padding: 7px 12px 8px 22px;
 	text-align: right;
 	line-height: 1.35;
-	/* The panel is deliberately lighter than it needs to be where nothing is
-	   hiding behind it, and as opaque as it must be where the wordmark is. The
-	   wordmark sits in the panel's bottom-right, so the ramp runs from the
-	   opposite corner: the top-left stays translucent and lets the photograph
-	   read through, and the fill is solid well before it reaches the mark.
+	/* The panel is a ramp, not a flat fill, and that is a correctness decision
+	   as much as a visual one.
 
-	   The stop is 16% rather than something more generous because the panel
-	   shrinks to its floor behind short artist names, and on that narrow a
-	   panel the wordmark begins about 20% along the diagonal. Below that
-	   threshold there is no latitude at all: at 0.96 alpha the wordmark ghosts
-	   back into view, because a few percent of a white mark over a dark panel
-	   is still legible. */
-	background-image: linear-gradient(135deg, var(--cap-top, rgba(38, 38, 38, 0.45)) 0%, var(--cap-bot, rgba(30, 30, 30, 0.995)) 16%);
+	   It has two jobs that pull against each other: let the photograph read
+	   through, and completely hide the burned-in davidconger.com wordmark in
+	   the bottom-right. A single even alpha cannot do both -- anything
+	   transparent enough to see through is transparent enough to read the mark
+	   through. Running the ramp corner to corner separates them in space: the
+	   top-left, where nothing is hiding, opens right up, and the fill is solid
+	   by the time it reaches the mark.
+
+	   The stop is 12% rather than something more generous because the panel
+	   shrinks to its 32% floor behind short artist names, and on that narrow a
+	   panel the wordmark begins only about 15% along the diagonal. The end of
+	   the ramp must stay at 0.99 or above: at 0.96 the mark ghosts back,
+	   because a few percent of a white mark over a dark panel is still
+	   legible.
+
+	   The blur is a bonus on top, not the mechanism. It was tried as the
+	   mechanism -- heavy blur over an evenly translucent panel, on the theory
+	   that letterforms are high frequency and would smear away -- and it does
+	   work, right up until anything makes an ancestor a stacking context. A
+	   transform, an opacity, a filter on any parent turns backdrop-filter into
+	   a no-op silently, and the watermark comes back on every frame at once.
+	   The hover dim did exactly that. Masking cannot rest on something that
+	   fragile, so the gradient carries it and the blur only softens what shows
+	   through the open end. */
+	background-image: linear-gradient(135deg, var(--cap-top, rgba(38, 38, 38, 0.5)) 0%, var(--cap-bot, rgba(30, 30, 30, 0.995)) 12%);
+	backdrop-filter: blur(20px) saturate(1.25);
+	-webkit-backdrop-filter: blur(20px) saturate(1.25);
 	color: var(--cap-fg, rgba(255, 255, 255, 0.88));
 	font-size: 12px;
-	/* Photographs are noisy, and a tinted panel can land within a few percent
-	   of the pixels beside it. A hairline of light along the top edge keeps
-	   the panel legible without drawing a border. */
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+	/* Same shadow as the frame, for the same reason: once the panel is inset
+	   from the corner it needs seating, and the shadow is also what stops its
+	   bottom edge ending abruptly against the page. The inset hairline is a
+	   third layer of the same property -- photographs are noisy, and a tinted
+	   panel can land within a few percent of the pixels beside it, so a line
+	   of light along the top edge keeps it legible without drawing a border. */
+	box-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.55),
+		0 10px 26px rgba(0, 0, 0, 0.45),
+		inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .showArtist {
@@ -565,13 +700,21 @@ a.yearStep:focus-visible {
    Deliberately below the photograph and deliberately small. Controls on top of
    the image would compete with the caption and cover more of the frame, and
    the whole point of this layout is that the photograph is the content.
+
+   Left-aligned, because the caption now hangs into this row on the right. The
+   two finish on the same baseline, so the strip below each frame reads as one
+   deliberate band rather than two things that happen to be near each other.
    -------------------------------------------------------------------------- */
 
 .showDots {
 	display: flex;
-	justify-content: flex-end;
+	justify-content: flex-start;
+	align-items: flex-end;
 	gap: 8px;
-	padding: 11px 2px 0 0;
+	height: var(--cap-drop);
+	/* Inset by the same amount the caption is, so the two ends of the strip
+	   below the frame sit an equal distance in from their edges. */
+	padding: 0 0 0 calc(var(--cap-inset) + 2px);
 	line-height: 0;
 }
 

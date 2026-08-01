@@ -212,14 +212,49 @@ async function main() {
     // The clip rectangle is in page coordinates, not viewport coordinates, so
     // it has to be offset by the current scroll position -- otherwise a --eval
     // snippet that scrolls the page is silently ignored by the capture.
+    //
+    // --zoom N magnifies through the capture's own scale factor, and --clip-sel
+    // aims it at one element. Do NOT reach for a CSS transform to zoom instead:
+    // a transform makes the element a stacking context, and backdrop-filter on
+    // anything inside it then samples the backdrop of the whole group rather
+    // than the siblings behind it. That silently disables the effect and makes
+    // a glass panel look like a flat one -- an hour was lost to it once.
     const clip = process.argv.includes('--clip');
+    const zoomIdx = process.argv.indexOf('--zoom');
+    const zoom = zoomIdx > -1 ? Number(process.argv[zoomIdx + 1]) : 1;
+    const selIdx = process.argv.indexOf('--clip-sel');
     let shotArgs = { format: 'png', captureBeyondViewport: true };
-    if (clip) {
+    if (selIdx > -1 && process.argv[selIdx + 1]) {
+      const sel = JSON.stringify(process.argv[selIdx + 1]);
+      const { result: box } = await send('Runtime.evaluate', {
+        expression: `(() => {
+          const el = document.querySelector(${sel});
+          if (!el) { return null; }
+          const r = el.getBoundingClientRect();
+          const pad = 24;
+          return {
+            x: Math.max(0, r.left + window.scrollX - pad),
+            y: Math.max(0, r.top + window.scrollY - pad),
+            width: r.width + pad * 2,
+            height: r.height + pad * 2,
+          };
+        })()`,
+        returnByValue: true,
+      });
+      if (!box.value) {
+        console.log('\n--clip-sel matched nothing: ' + process.argv[selIdx + 1]);
+      } else {
+        shotArgs = { format: 'png', clip: { ...box.value, scale: zoom } };
+      }
+    } else if (clip) {
       const { result: pos } = await send('Runtime.evaluate', {
         expression: '({x: window.scrollX, y: window.scrollY})',
         returnByValue: true,
       });
-      shotArgs = { format: 'png', clip: { x: pos.value.x, y: pos.value.y, width, height, scale: 1 } };
+      shotArgs = {
+        format: 'png',
+        clip: { x: pos.value.x, y: pos.value.y, width: width / zoom, height: height / zoom, scale: zoom },
+      };
     }
     const shot = await send('Page.captureScreenshot', shotArgs);
     fs.writeFileSync(process.argv[shotIdx + 1], Buffer.from(shot.data, 'base64'));

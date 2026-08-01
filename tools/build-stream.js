@@ -312,13 +312,16 @@ function renderShow(show, colors) {
     const style = c
       // The ramp runs corner to corner, from the panel's top-left to its
       // bottom-right, so it can carry an alpha shift as well as a colour one:
-      // light where the panel meets the photograph, opaque by the time it
-      // reaches the burned-in watermark in the bottom-right. A gradient that
-      // was uniform along one axis had to be uniformly opaque to hide the
-      // wordmark, which made every caption read as a sticker laid on the frame.
-      // --cap-top is the colour sampled from the upper half of the panel's
-      // footprint and --cap-bot from the lower half.
-      ? `--cap-top:${captionFill(c.top, lum, 0.45)};--cap-bot:${captionFill(c.bottom, lum, 0.995)};--cap-fg:${lum <= 0.5 ? 'rgba(255,255,255,.88)' : 'rgba(17,17,17,.86)'}`
+      // open where the panel meets the photograph, opaque by the time it
+      // reaches the burned-in watermark in the bottom-right. --cap-top is
+      // sampled from the upper half of the panel's footprint and --cap-bot
+      // from the lower half.
+      //
+      // --cap-bot must stay at 0.99 or above. That end of the ramp is the only
+      // thing masking the wordmark; the stylesheet's backdrop-filter helps but
+      // cannot be relied on, because any ancestor stacking context disables it
+      // without warning. See the long note in stream.css.
+      ? `--cap-top:${captionFill(c.top, lum, 0.5)};--cap-bot:${captionFill(c.bottom, lum, 0.995)};--cap-fg:${lum <= 0.5 ? 'rgba(255,255,255,.88)' : 'rgba(17,17,17,.86)'}`
       : '';
     return `				<div class="showSlide${i === 0 ? ' is-active' : ''}" style="${style}"${i === 0 ? '' : ' aria-hidden="true"'}>
 					<img src="${up}galleries/${show.rel}/${f.file}" width="${f.width}" height="${f.height}" alt="${escapeHtml(show.artist)}" loading="lazy" decoding="async">${caption(i)}

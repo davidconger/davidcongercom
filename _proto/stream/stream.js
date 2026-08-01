@@ -181,8 +181,9 @@
 	// it. The handover happens when the name itself starts to leave: the line
 	// above it is what gets watched, because that line's bottom edge is the
 	// name's top edge. The inset matches the gap the icons keep from the top of
-	// the window, so the name reaches the same place they sit before it goes.
-	watchStick(topBar, document.querySelector('.headerTextPre'), 'is-collapsed', 30);
+	// the window -- half the difference between the bar's height and the icons
+	// -- so the name reaches the same place they sit before it goes.
+	watchStick(topBar, document.querySelector('.headerTextPre'), 'is-collapsed', 15);
 
 	// The year pins as soon as it reaches the bar, which is the moment the
 	// masthead -- the last thing above it -- has passed the bar's full height.
