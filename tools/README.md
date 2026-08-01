@@ -290,6 +290,56 @@ Result: 24 events, 1,833 photos, 1,857 new pages under `/you/2009/`, `/you/2010/
 and `/you/2011/`, all with canonical, description, OpenGraph and complete `alt`
 coverage.
 
+## build-catalog.js
+
+Rebuilds the thumbnail catalog pages under `catalog/`. `catalog/2019` and
+`catalog/2020` were never rendered by the retired desktop tool — only their
+`_data` folders survived — so 98 galleries existed on the site with nothing
+linking to them.
+
+```bash
+node tools/build-catalog.js --year 2019 --year 2020 --root --dry-run
+node tools/build-catalog.js --all --root
+node tools/build-catalog.js --nav          # only refresh prev/next year links
+```
+
+Each year keeps its event list in `catalog/<year>/_data/<year>-<mm>.txt` as
+semicolon-delimited records, newest first:
+
+```
+Sara Bareilles, WaMu Theater, Seattle, WA. October 22, 2019; 2019/10/sarabareilles/index.htm; l;  (CollabDb); 8D95834FE854805
+```
+
+Those files turned out to be **incomplete** — 2018 is missing two entire months
+and 2019 is missing two events — so the `galleries/<year>` folders, not `_data`,
+are treated as the authoritative event list. Anything `_data` does not describe
+has its description rebuilt from the gallery page's own `og:description`, which
+phrases the same facts differently:
+
+| Source | Text |
+|---|---|
+| `og:description` | `Deleasa at Tacoma Dome in Tacoma, WA on October 13, 2019.` |
+| catalog entry | `Deleasa, Tacoma Dome, Tacoma, WA. October 13, 2019` |
+
+The 240x160 thumbnail for each event is centre-cropped from that gallery's own
+cover frame (`<slug>-01.jpg`, or `<slug>.jpg` for single-photo galleries) via
+`resize-images.ps1` at quality 82. Existing thumbnails are left alone unless
+`--force-thumbs` is passed.
+
+`--nav` alone repairs the prev/next chain on already-rendered years. Each year
+was generated when it was the most recent one, so its forward link was written
+as plain text — `2019 -&gt;` on the 2018 page — and 2010 carried a dead
+`&lt;- 2009` label pointing at a year that was never catalogued.
+
+`catalog/index.htm` is a copy of the newest year rendered one directory
+shallower. It was stale in two ways: it showed the 2018 events under a
+`2017 Catalog` heading, and its entry links read `../../galleries/…`, which only
+resolved because RFC 3986 clamps excess `../` at the root. `--root` regenerates
+it correctly.
+
+Result: `catalog/2019/` (78 events) and `catalog/2020/` (20 events), 97 new
+thumbnails, and a complete 2010 → 2020 navigation chain.
+
 ## resize-images.ps1
 
 Batch image resizer built on .NET `System.Drawing`, so it needs no npm packages
@@ -484,6 +534,7 @@ in 2013), two galleries with unescaped apostrophes in their paths
 | Phase 6 — generator + CSS consolidation | 9,596 | 4,068 | **0** |
 | Phase 7 — hosting, sitemap and SEO | 9,597 | 4,068 | **0** |
 | you_old conversion | 11,448 | 4,052 | **0** |
+| catalog 2019/2020 | 11,450 | 4,051 | **0** |
 
 The large drop in phase 4/5 is mostly the deletion of 161 timestamped
 `catalog/*/_data/index-old-*.htm` backups, which between them referenced tens of
