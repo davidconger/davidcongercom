@@ -1,9 +1,0 @@
-@charset "utf-8";
-
-/* Compatibility shim.
- *
- * The rules that used to live here are now in css/site.css. Thousands of
- * archive pages still link to this filename directly, so it forwards instead
- * of 404ing. Removed in Phase 5, once every page links to site.css.
- */
-@import url("site.css");

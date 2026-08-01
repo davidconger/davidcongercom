@@ -68,6 +68,20 @@ img {
 	height: auto;
 }
 
+/* Galleries from roughly 2009-2013 arranged photos in tables with a hardcoded
+   `style="width: 700px"` - 1,088 pages, mostly two portrait shots per row.
+   `max-width` beats the inline width, and `table-layout: fixed` stops the
+   cells from being sized by the photos' intrinsic width, which is what
+   otherwise keeps such a table from shrinking below its content. */
+table {
+	max-width: 100%;
+	table-layout: fixed;
+}
+
+td {
+	overflow: hidden;
+}
+
 /* Single definition of link colours. Previously repeated in core.css,
    all.css, galleries.css and catalog.css, in three different combinations. */
 a {
@@ -333,6 +347,7 @@ hr {
 .shareOuter {
 	position: relative;
 }
+
 
 .shareItem,
 .shareImage {
@@ -600,6 +615,48 @@ hr {
 
 .prose img {
 	vertical-align: middle;
+}
+
+.prose h1 {
+	font-size: 1.25rem;
+	letter-spacing: 1px;
+}
+
+.prose h2 {
+	font-size: 1rem;
+	margin-bottom: 0.25em;
+}
+
+/* The employer/venue name that heads each block of station detail. */
+.orgName {
+	margin: 0.25em 0;
+}
+
+/* Small print. Replaces the Expression Web `.auto-style1` artifact. */
+.fine {
+	font-size: x-small;
+	margin-top: 0.25em;
+}
+
+.plainList {
+	list-style: none;
+	padding: 0;
+	margin: 0.25em 0 1em;
+}
+
+.plainList li {
+	padding: 1px 0;
+}
+
+.clientLogos {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+
+.clientLogos img {
+	border: 0;
 }
 
 /* --------------------------------------------------------------------------

@@ -88,6 +88,118 @@ no longer exists.
 node tools/extract-featured.js js/homerotate.js js/featured-images.json
 ```
 
+## fingerprint.js
+
+Reports how many pages carry each legacy markup construct (XHTML doctype,
+`http-equiv` metas, jQuery, Facebook/Twitter/Google+ widgets, `class="lazy"`,
+missing viewport, and so on), plus the distribution of footer copyright years.
+
+Run it before and after a bulk transform to prove a construct is actually gone
+site-wide rather than merely gone from the pages you happened to look at.
+
+```bash
+node tools/fingerprint.js .
+```
+
+## modernize.js
+
+The bulk transform behind the markup modernization. It is **idempotent** — a
+second run over the same tree changes nothing — so it is safe to re-run after
+adding a rule.
+
+```bash
+node tools/modernize.js . --dry-run
+node tools/modernize.js . --write --filter galleries/
+node tools/modernize.js . --write
+```
+
+Options: `--dry-run` / `--write`, `--limit N`, `--filter <substring>`,
+`--show N` (print the first N transformed pages to stdout).
+
+What it does, per page:
+
+- XHTML 1.0 doctype and namespaced `<html>` → `<!DOCTYPE html>` +
+  `<html lang="en">`
+- `http-equiv` Content-Type/Content-Language → `<meta charset="utf-8">`
+- inserts `<meta name="viewport">`
+- collapses the three legacy stylesheet links into one `css/site.css`, with the
+  depth recomputed **from the file's real location** — this also repairs pages
+  whose stylesheet path was wrong to begin with
+- removes jQuery, lazyload, scrollstop, `galleries.js`, `fbpublish.js`, and the
+  Facebook / Twitter / Google+ / Pinterest / SiteMeter widgets
+- `<img class="lazy" data-original="x.jpg">` → `<img src="x.jpg" loading="lazy"
+  decoding="async">`
+- removes `#fb-root` and the `.shareWide` / `.shareTallL` / `.shareTallR`
+  overlays (nesting-aware, since those contain nested tables)
+- adds `alt` text to the social profile icons and the site banner
+- points the banner at the local copy instead of the hardcoded apex domain
+- rewrites breadcrumb `href`s so the link text matches its destination
+- strips the inline `<body style>` that duplicated `css/site.css`
+- `defer`s `azureinsights.js`; drops `type="text/javascript"`
+- sets the footer copyright to 2026, adding a footer to pages that lacked one
+
+HTML fragments (`catalog/*/list.htm`, `you/!template/2024/eventitem.htm`) have no
+`<head>`, so head-level rules skip them while the image and link rules still
+apply.
+
+## audit-breadcrumbs.js
+
+Finds breadcrumb links whose visible text does not match where they actually
+go. A crumb with one `../` too many still resolves to a real page, so
+`check-links.js` reports it as healthy; only comparing text to destination
+catches it.
+
+```bash
+node tools/audit-breadcrumbs.js .
+```
+
+## audit-alt.js
+
+Lists `<img>` elements with no `alt` attribute, grouped by image with numbered
+filenames collapsed, so the remaining gaps read as a short list rather than
+thousands of individual pages.
+
+```bash
+node tools/audit-alt.js .
+```
+
+## check-hydration.ps1
+
+**Run this before any bulk write or delete.**
+
+Fails if any file in the tree is a OneDrive Files On-Demand placeholder.
+Dehydrated folders can enumerate as empty and are invisible to `git add`, which
+is how an earlier cleanup pass deleted three live content directories.
+
+```powershell
+powershell -File tools\check-hydration.ps1
+```
+
+## sandbox-check.ps1
+
+Copies a spread of pages — a fixed spine of known-tricky ones plus a random
+sample from every year — into a temp tree, runs `modernize.js` over it, and
+asserts that no legacy markup survived, that the required markup is present on
+every page, and that a second run is a no-op.
+
+```powershell
+powershell -File tools\sandbox-check.ps1
+```
+
+The sandbox mirrors the real directory depth, so the relative `css/site.css`
+path the transform computes is exercised exactly as it would be in production.
+
+## probe-sweep.ps1
+
+Renders one gallery and one `/you/` event **per year** plus the hand-authored
+pages, at 390px and 1280px, and reports only failures. Catches layout
+regressions across markup generations that a single spot-check would miss.
+
+```powershell
+node tools/serve.js . 8099          # in one shell
+powershell -File tools\probe-sweep.ps1
+```
+
 ## serve.js
 
 Minimal static server for previewing the site locally, with IIS-like directory →
@@ -121,3 +233,34 @@ relative paths broke when they were moved into `old/` subfolders. Known genuine
 issues on live pages include references to `posterous.png` (Posterous shut down
 in 2013), two galleries with unescaped apostrophes in their paths
 (`hell'sbelles`, `don't...`), and a handful of galleries that no longer exist.
+
+## Progress against the baseline
+
+| After | Pages | Broken refs | Newly broken |
+|---|---:|---:|---:|
+| Baseline | 9,759 | 75,670 | — |
+| Phase 1 — purge FrontPage cruft | 9,759 | 73,807 | 22 |
+| Phase 2 — CSS consolidation | 9,759 | 73,807 | 0 |
+| Phase 3 — JavaScript cleanup | 9,759 | 73,807 | 0 |
+| Phase 4/5 — markup modernization | 9,598 | 4,072 | **0** |
+
+The large drop in phase 4/5 is mostly the deletion of 161 timestamped
+`catalog/*/_data/index-old-*.htm` backups, which between them referenced tens of
+thousands of thumbnails that no longer exist. The `.txt` files in those same
+folders are the retired generator's source data and were kept.
+
+Markup state after phase 4/5, from `fingerprint.js`:
+
+| Construct | Before | After |
+|---|---:|---:|
+| Pages with a viewport meta | 4 | 9,589 |
+| XHTML 1.0 doctype | 9,747 | 0 |
+| `http-equiv` metas | 9,747 | 0 |
+| jQuery + lazyload + scrollstop | 2,604 | 0 |
+| Facebook SDK / Twitter / Google+ / Pinterest | ~2,100 | 0 |
+| SiteMeter | 77 | 0 |
+| Breadcrumbs pointing at the wrong page | 2,778 | 0 |
+| Stylesheets | 5 | 1 |
+| Script files | 15 | 2 |
+
+The nine pages without a viewport meta are HTML fragments with no `<head>`.
