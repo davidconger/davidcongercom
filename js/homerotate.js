@@ -33,17 +33,48 @@
     return document.getElementById(id);
   }
 
-  /* Fisher-Yates. The original drew random indices and rejected duplicates by
-     rescanning everything chosen so far, which could loop indefinitely. */
+  /* Newer work is favoured, but only mildly. The pool is lopsided by accident
+     of how it was assembled -- 2015 and 2017 contribute far more frames than
+     the recent years -- so an even draw makes the homepage look like it stopped
+     a decade ago. Each frame's weight grows by RECENCY_BASE per year, which
+     lifts the newest year to roughly three times the oldest per frame without
+     ever excluding the archive.
+
+     Weighted sampling without replacement, via Efraimidis-Spirakis: give each
+     item the key random^(1/weight) and take the largest keys. Heavier items
+     tend to draw keys closer to 1, and because every item is keyed exactly once
+     there is no rejection loop -- the original drew random indices and
+     rescanned everything chosen so far, which could spin indefinitely. */
+  var RECENCY_BASE = 1.25;
+
+  function yearOf(item) {
+    var m = /\/(\d{4})\//.exec(item.gallery || '');
+    return m ? +m[1] : 0;
+  }
+
   function pick(items, count) {
-    var pool = items.slice();
-    for (var i = pool.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var t = pool[i];
-      pool[i] = pool[j];
-      pool[j] = t;
+    if (!items.length) return [];
+
+    var oldest = Infinity;
+    for (var i = 0; i < items.length; i++) {
+      var y = yearOf(items[i]);
+      if (y && y < oldest) oldest = y;
     }
-    return pool.slice(0, Math.min(count, pool.length));
+    if (oldest === Infinity) oldest = 0;
+
+    var keyed = items.map(function (item) {
+      var y = yearOf(item);
+      var weight = y ? Math.pow(RECENCY_BASE, y - oldest) : 1;
+      /* Math.random() can return 0, whose key is 0 for every weight; nudging it
+         off zero keeps the ordering meaningful. */
+      return { item: item, key: Math.pow(Math.random() || 1e-9, 1 / weight) };
+    });
+
+    keyed.sort(function (a, b) { return b.key - a.key; });
+
+    return keyed.slice(0, Math.min(count, keyed.length)).map(function (k) {
+      return k.item;
+    });
   }
 
   function show(index) {

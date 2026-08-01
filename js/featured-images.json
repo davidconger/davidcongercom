@@ -644,41 +644,6 @@
     "venue": "Paramount Theatre, Seattle, WA"
   },
   {
-    "gallery": "galleries/2016/10/phantogram/",
-    "image": "galleries/2016/10/phantogram/phantogram-01.jpg",
-    "date": "October 7, 2016",
-    "artist": "Phantogram",
-    "venue": "Paramount Theatre, Seattle, WA"
-  },
-  {
-    "gallery": "galleries/2016/10/range/",
-    "image": "galleries/2016/10/range/range-01.jpg",
-    "date": "October 7, 2016",
-    "artist": "Range",
-    "venue": "Paramount Theatre, Seattle, WA"
-  },
-  {
-    "gallery": "galleries/2016/10/phantogram/",
-    "image": "galleries/2016/10/phantogram/phantogram-01.jpg",
-    "date": "October 7, 2016",
-    "artist": "Phantogram",
-    "venue": "Paramount Theatre, Seattle, WA"
-  },
-  {
-    "gallery": "galleries/2016/10/range/",
-    "image": "galleries/2016/10/range/range-01.jpg",
-    "date": "October 7, 2016",
-    "artist": "Range",
-    "venue": "Paramount Theatre, Seattle, WA"
-  },
-  {
-    "gallery": "galleries/2016/10/range/",
-    "image": "galleries/2016/10/range/range-01.jpg",
-    "date": "October 7, 2016",
-    "artist": "Range",
-    "venue": "Paramount Theatre, Seattle, WA"
-  },
-  {
     "gallery": "galleries/2016/02/carlyraejepsen/",
     "image": "galleries/2016/02/carlyraejepsen/carlyraejepsen-01.jpg",
     "date": "February 29, 2016",
@@ -1160,5 +1125,293 @@
     "date": "March 8, 2015",
     "artist": "Craig Wayne Boyd",
     "venue": "Snoqualmie Casino"
+  },
+  {
+    "gallery": "galleries/2019/12/deadmau5/",
+    "image": "galleries/2019/12/deadmau5/deadmau5-02.jpg",
+    "date": "December 19, 2019",
+    "artist": "deadmau5",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/12/catfishandthebottlemen/",
+    "image": "galleries/2019/12/catfishandthebottlemen/catfishandthebottlemen-03.jpg",
+    "date": "December 10, 2019",
+    "artist": "Catfish and the Bottlemen",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/12/theregrettes/",
+    "image": "galleries/2019/12/theregrettes/theregrettes-02.jpg",
+    "date": "December 10, 2019",
+    "artist": "The Regrettes",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/11/kevingates/",
+    "image": "galleries/2019/11/kevingates/kevingates-02.jpg",
+    "date": "November 30, 2019",
+    "artist": "Kevin Gates",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/11/ykosiris/",
+    "image": "galleries/2019/11/ykosiris/ykosiris-02.jpg",
+    "date": "November 30, 2019",
+    "artist": "YK Osiris",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/11/illenium/",
+    "image": "galleries/2019/11/illenium/illenium-01.jpg",
+    "date": "November 27, 2019",
+    "artist": "Illenium",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/11/machinegunkelly/",
+    "image": "galleries/2019/11/machinegunkelly/machinegunkelly-01.jpg",
+    "date": "November 10, 2019",
+    "artist": "Machine Gun Kelly",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/11/machinegunkelly/",
+    "image": "galleries/2019/11/machinegunkelly/machinegunkelly-02.jpg",
+    "date": "November 10, 2019",
+    "artist": "Machine Gun Kelly",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/11/idriselba/",
+    "image": "galleries/2019/11/idriselba/idriselba-01.jpg",
+    "date": "November 9, 2019",
+    "artist": "Idris Elba",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/11/idriselba/",
+    "image": "galleries/2019/11/idriselba/idriselba-03.jpg",
+    "date": "November 9, 2019",
+    "artist": "Idris Elba",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/11/lukecombs/",
+    "image": "galleries/2019/11/lukecombs/lukecombs-01.jpg",
+    "date": "November 2, 2019",
+    "artist": "Luke Combs",
+    "venue": "Tacoma Dome, Tacoma, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/11/morganwallen/",
+    "image": "galleries/2019/11/morganwallen/morganwallen-01.jpg",
+    "date": "November 2, 2019",
+    "artist": "Morgan Wallen",
+    "venue": "Tacoma Dome, Tacoma, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/11/morganwallen/",
+    "image": "galleries/2019/11/morganwallen/morganwallen-02.jpg",
+    "date": "November 2, 2019",
+    "artist": "Morgan Wallen",
+    "venue": "Tacoma Dome, Tacoma, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/11/jamesonrodgers/",
+    "image": "galleries/2019/11/jamesonrodgers/jamesonrodgers-01.jpg",
+    "date": "November 2, 2019",
+    "artist": "Jameson Rodgers",
+    "venue": "Tacoma Dome, Tacoma, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/10/jonasbrothers/",
+    "image": "galleries/2019/10/jonasbrothers/jonasbrothers-01.jpg",
+    "date": "October 13, 2019",
+    "artist": "Jonas Brothers",
+    "venue": "Tacoma Dome, Tacoma, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/10/jonasbrothers/",
+    "image": "galleries/2019/10/jonasbrothers/jonasbrothers-02.jpg",
+    "date": "October 13, 2019",
+    "artist": "Jonas Brothers",
+    "venue": "Tacoma Dome, Tacoma, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/10/jonasbrothers/",
+    "image": "galleries/2019/10/jonasbrothers/jonasbrothers-03.jpg",
+    "date": "October 13, 2019",
+    "artist": "Jonas Brothers",
+    "venue": "Tacoma Dome, Tacoma, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/10/beberexha/",
+    "image": "galleries/2019/10/beberexha/beberexha-01.jpg",
+    "date": "October 13, 2019",
+    "artist": "Bebe Rexha",
+    "venue": "Tacoma Dome, Tacoma, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/10/logic/",
+    "image": "galleries/2019/10/logic/logic-02.jpg",
+    "date": "October 8, 2019",
+    "artist": "Logic",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2019/01/yg/",
+    "image": "galleries/2019/01/yg/yg-01.jpg",
+    "date": "January 18, 2019",
+    "artist": "YG",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2020/03/thestrokes/",
+    "image": "galleries/2020/03/thestrokes/thestrokes-01.jpg",
+    "date": "March 9, 2020",
+    "artist": "The Strokes",
+    "venue": "WaMu Theater, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2020/02/tobymac/",
+    "image": "galleries/2020/02/tobymac/tobymac-01.jpg",
+    "date": "February 28, 2020",
+    "artist": "TobyMac",
+    "venue": "accesso ShoWare Center, Kent, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2020/02/jokoy/",
+    "image": "galleries/2020/02/jokoy/jokoy-01.jpg",
+    "date": "February 16, 2020",
+    "artist": "Jo Koy",
+    "venue": "accesso ShoWare Center, Kent, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2020/02/jokoy/",
+    "image": "galleries/2020/02/jokoy/jokoy-03.jpg",
+    "date": "February 16, 2020",
+    "artist": "Jo Koy",
+    "venue": "accesso ShoWare Center, Kent, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2020/02/superm/",
+    "image": "galleries/2020/02/superm/superm-02.jpg",
+    "date": "February 4, 2020",
+    "artist": "SuperM",
+    "venue": "accesso ShoWare Center, Kent, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2020/01/seventeen/",
+    "image": "galleries/2020/01/seventeen/seventeen-02.jpg",
+    "date": "January 23, 2020",
+    "artist": "Seventeen",
+    "venue": "accesso ShoWare Center, Kent, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2018/04/postmalone/",
+    "image": "galleries/2018/04/postmalone/postmalone-02.jpg",
+    "date": "April 29, 2018",
+    "artist": "Post Malone",
+    "venue": "accesso ShoWare Center, Kent, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2018/05/weday/",
+    "image": "galleries/2018/05/weday/weday-01.jpg",
+    "date": "May 3, 2018",
+    "artist": "WE Day",
+    "venue": "KeyArena, Seattle Center, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2018/05/weday/",
+    "image": "galleries/2018/05/weday/weday-03.jpg",
+    "date": "May 3, 2018",
+    "artist": "WE Day",
+    "venue": "KeyArena, Seattle Center, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2018/05/shaed/",
+    "image": "galleries/2018/05/shaed/shaed-02.jpg",
+    "date": "May 6, 2018",
+    "artist": "Shaed",
+    "venue": "Showbox SoDo, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2018/05/xambassadors/",
+    "image": "galleries/2018/05/xambassadors/xambassadors-01.jpg",
+    "date": "May 6, 2018",
+    "artist": "X Ambassadors",
+    "venue": "Showbox SoDo, Seattle, WA",
+    "width": 640,
+    "height": 426
+  },
+  {
+    "gallery": "galleries/2018/05/xambassadors/",
+    "image": "galleries/2018/05/xambassadors/xambassadors-02.jpg",
+    "date": "May 6, 2018",
+    "artist": "X Ambassadors",
+    "venue": "Showbox SoDo, Seattle, WA",
+    "width": 640,
+    "height": 426
   }
 ]

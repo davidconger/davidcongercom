@@ -211,16 +211,33 @@ function shows(year) {
     const files = fs.readdirSync(dir)
       .filter((f) => /\.jpe?g$/i.test(f))
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-    // Landscape only. Mixing orientations in a fixed-ratio frame would make the
-    // whole row jump when the rotator advanced; portrait pairing is a later
-    // question.
-    const frames = [];
+    // Landscape only, and every frame in a show must be exactly the same size.
+    // The slides after the first are absolutely positioned over the frame the
+    // first one sizes, so a frame with a different ratio renders at a
+    // different height and drags the caption off the bottom of the picture --
+    // which uncovers the watermark the caption exists to hide. Rather than
+    // trust the first file, the sizes are counted and the largest matching set
+    // wins, so an odd lead frame costs that show its rotator instead of
+    // costing every other frame its alignment.
+    const candidates = [];
     for (const f of files) {
-      if (frames.length >= maxPhotos) break;
       const size = jpegSize(path.join(dir, f));
       if (!size || size.width <= size.height) continue;
-      frames.push({ file: f, ...size });
+      candidates.push({ file: f, ...size });
     }
+    if (!candidates.length) continue;
+
+    const bySize = new Map();
+    for (const c of candidates) {
+      const key = `${c.width}x${c.height}`;
+      if (!bySize.has(key)) bySize.set(key, []);
+      bySize.get(key).push(c);
+    }
+    let best = null;
+    for (const group of bySize.values()) {
+      if (!best || group.length > best.length) best = group;
+    }
+    const frames = best.slice(0, maxPhotos);
     if (!frames.length) continue;
     out.push({ rel, ...splitDescription(v.desc), desc: v.desc, order: v.order, frames });
   }

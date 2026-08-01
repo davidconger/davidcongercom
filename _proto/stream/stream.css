@@ -13,21 +13,27 @@
 
 /* The frame width every band of the page shares: two 640px photographs plus
    the gutter between them. Anything full-bleed against the browser edge reads
-   as detached from the content once the grid is centred. */
+   as detached from the content once the grid is centred.
+
+   1308 = 640 + 28 + 640, and nothing else: the page margin comes from body's
+   own 12px padding rather than being added again here. That matters at the
+   threshold -- with 16px of padding of its own, the grid needed 1379px of
+   window before it could show two columns, which put a 1366px laptop into a
+   single column for the sake of 32 pixels it did not need. */
 .stream,
 .streamBar {
-	max-width: 1348px;
+	max-width: 1308px;
 	margin: 0 auto;
 }
 
 /* The year sits close above the first row, so it reads as the head of the
    stream rather than as a separate band of chrome. */
 .stream {
-	padding: 17px 24px 10px;
+	padding: 17px 0 10px;
 }
 
 .streamBar {
-	padding: 0 24px;
+	padding: 0;
 	box-sizing: border-box;
 }
 
@@ -419,21 +425,44 @@ a.yearStep:focus-visible {
 	pointer-events: none;
 }
 
+/* Fixed 640px tracks, not fractions of the container.
+
+   The photographs are 640x426 and there are no larger originals, so any track
+   width other than 640 makes the browser resample every frame on the page. A
+   fluid 1fr grid was doing exactly that: 636px at 1440, 625.5px at 1366,
+   582.5px at 1280 -- scale factors just under 1, which is the worst case there
+   is. There is no real size reduction to hide the interpolation, so each output
+   pixel is a blend of two neighbours and the whole page reads slightly soft.
+   The 1366 case was landing on a half pixel as well. Rendering at exactly 640
+   maps one image pixel to one CSS pixel, which is why the home page rotator has
+   always looked crisper than this grid did.
+
+   auto-fit does the responsive work without a breakpoint: two tracks while the
+   container can hold 1308px, one below that, centred either way. Only below
+   672px -- phones, where the pixel ratio hides the resampling anyway -- does the
+   frame have to go fluid, and that is handled at the bottom of this file. */
 .showGrid {
 	list-style: none;
 	margin: 0;
 	padding: 0;
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fit, 640px);
+	justify-content: center;
 	gap: 46px 28px;
 }
 
-@media (max-width: 980px) {
+/* Once the grid is a single column the horizontal gutter is gone, so the
+   vertical rhythm tightens to match. */
+@media (max-width: 1331px) {
+	.showGrid {
+		gap: 38px 0;
+	}
+}
+
+/* Below the frame's own width there is no choice but to scale it. */
+@media (max-width: 671px) {
 	.showGrid {
 		grid-template-columns: minmax(0, 1fr);
-		gap: 38px 0;
-		max-width: 640px;
-		margin: 0 auto;
 	}
 }
 
@@ -448,7 +477,7 @@ a.yearStep:focus-visible {
 	}
 
 	.stream {
-		padding: 14px 16px 10px;
+		padding: 14px 0 10px;
 	}
 
 	.showCaption {
