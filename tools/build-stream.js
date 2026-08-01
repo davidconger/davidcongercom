@@ -302,7 +302,20 @@ function shows(year) {
     }
     const frames = best.slice(0, maxPhotos);
     if (!frames.length) continue;
-    out.push({ rel, ...splitDescription(v.desc), desc: v.desc, order: v.order, frames });
+
+    // Where the caption should point. Most shows have a gallery page inside
+    // their own folder, but the 2009 galleries are bare folders of frames whose
+    // page is the flat legacy file at galleries/<slug>.htm. Linking to the
+    // folder there gives a directory with no index, so the destination is
+    // resolved here rather than assumed. A show with neither is dropped: a
+    // caption that goes nowhere is worse than one frame fewer on the page.
+    const slug = rel.split('/').pop();
+    let href;
+    if (fs.existsSync(path.join(dir, 'index.htm'))) href = `${rel}/`;
+    else if (fs.existsSync(path.join(ROOT, 'galleries', `${slug}.htm`))) href = `${slug}.htm`;
+    else continue;
+
+    out.push({ rel, href, ...splitDescription(v.desc), desc: v.desc, order: v.order, frames });
   }
 
   out.sort((a, b) => {
@@ -373,7 +386,7 @@ function captionFill(rgb, lum, alpha) {
 
 function renderShow(show, colors) {
   const up = '../../../';
-  const href = `${up}galleries/${show.rel}/`;
+  const href = `${up}galleries/${show.href}`;
   const many = show.frames.length > 1;
 
   // The photograph advances the rotator and the caption is the way through to
