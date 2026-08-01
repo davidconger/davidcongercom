@@ -4,13 +4,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{ARTIST} at {VENUE} - photo {NUMBER} of {COUNT} | David Conger Photography</title>
-<meta name="description" content="Meet and greet photo {NUMBER} of {ARTIST} at {VENUE}, {DATE}.">
+<title>{PAGETITLE}</title>
+<meta name="description" content="{DESCRIPTION}">
 
 <link rel="stylesheet" href="{ROOT}css/site.css">
 <script src="{ROOT}js/azureinsights.js" defer></script>
 
-<meta property="og:title" content="Meet and Greet with {ARTIST} at {VENUE}" />
+<link rel="canonical" href="{CANONICAL}" />
+
+<meta property="og:title" content="{OGTITLE}" />
+<meta property="og:description" content="{DESCRIPTION}" />
 <meta property="og:image" content="https://www.davidconger.com/you/{YEAR}/{SLUG}/gallery/{IMAGEFILE}" />
 <meta property="og:type" content="article" />
 <meta property="og:site_name" content="www.davidconger.com" />
@@ -40,7 +43,7 @@
 <div id="gallery">
 	<div id="details">
 		<span id="title">{ARTIST}</span><br />
-		<span id="venue">Meet and Greet at {VENUE}</span><br />
+		{VENUEBLOCK}
 		<span id="date">{DATE}</span>
 	</div>
 
@@ -49,7 +52,7 @@
 	</div>
 
 	<ul id="youimage">
-		<li><a href="{IMAGEFILE}" download><img src="{IMAGEFILE}" width="{WIDTH}" height="{HEIGHT}" alt="{ARTIST} at {VENUE}, photo {NUMBER} of {COUNT}"/></a></li>
+		<li><a href="{IMAGEFILE}" download><img src="{IMAGEFILE}" width="{WIDTH}" height="{HEIGHT}" alt="{ALT}"/></a></li>
 	</ul>
 
 	<div class="younavigation">

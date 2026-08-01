@@ -4,13 +4,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Meet and Greet with {ARTIST} at {VENUE} | David Conger Photography | Concerts and Events | Seattle, WA</title>
-<meta name="description" content="Meet and greet photos of {ARTIST} at {VENUE}, {DATE}.">
+<title>{PAGETITLE}</title>
+<meta name="description" content="{DESCRIPTION}">
 
 <link rel="stylesheet" href="{ROOT}css/site.css">
 <script src="{ROOT}js/azureinsights.js" defer></script>
 
-<meta property="og:title" content="Meet and Greet with {ARTIST} at {VENUE}" />
+<link rel="canonical" href="{CANONICAL}" />
+
+<meta property="og:title" content="{OGTITLE}" />
 <meta property="og:description" content="Meet and greet photos from {DATE}." />
 <meta property="og:image" content="https://www.davidconger.com/you/{YEAR}/{SLUG}/thumbnail.jpg" />
 <meta property="og:type" content="article" />
@@ -41,12 +43,12 @@
 <div id="gallery">
 	<div id="details">
 		<span id="title">{ARTIST}</span><br />
-		<span id="venue">Meet and Greet at {VENUE}</span><br />
+		{VENUEBLOCK}
 		<span id="date">{DATE}</span>
 	</div>
 
 	<div>
-		&nbsp;<br />If you attended this event, courtesy of {COURTESY} you should find a copy of your photo below and are welcome to save a copy and share it on social media.<br/>For prints, contact
+		&nbsp;<br />{INTRO}<br/>For prints, contact
 		<a href="mailto:david@davidconger.com">david@davidconger.com</a>.
 		<span class="younavigation">{PHOTOSBY}</span><br />&nbsp;
 	</div>

@@ -19,9 +19,14 @@
  *
  * Options:
  *   --source <dir>      folder of source JPEGs (required)
- *   --artist <name>     (required)
- *   --venue <name>      (required)
- *   --date <date>       e.g. "March 15, 2026" or 2026-03-15 (required)
+ *   --artist <name>     event or artist name (required)
+ *   --date <date>       e.g. "March 15, 2026", 2026-03-15, or "May 2011" (required)
+ *   --venue <name>      optional; when omitted the "Meet and Greet at ..." line
+ *                       is dropped instead of rendering an empty venue
+ *   --presized <dir>    folder of matching 240x160 thumbnails. Skips resizing and
+ *                       copies --source as the display image and --presized as the
+ *                       thumbnail, filename for filename. For importing archives
+ *                       that were already sized and have no surviving originals.
  *   --courtesy <name>   defaults to the venue
  *   --photos-by <html>  optional credit line
  *   --slug <slug>       defaults to <artist>-at-<venue>, lowercased alphanumeric
@@ -39,6 +44,7 @@ const { execFileSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..');
 const TEMPLATES = path.join(__dirname, 'templates');
 const COPYRIGHT_YEAR = '2026';
+const SITE = 'https://www.davidconger.com';
 
 // Matches the dimensions the site has used since 2019.
 const FULL_MAX = 1280;
@@ -73,7 +79,7 @@ function fail(msg) {
   process.exit(1);
 }
 
-if (!args.source || !args.artist || !args.venue || !args.date) {
+if (!args.source || !args.artist || !args.date) {
   console.log(fs.readFileSync(__filename, 'utf8').split('*/')[0].replace(/^\/\*\*?/, '').replace(/^ ?\* ?/gm, ''));
   process.exit(args.source || args.artist ? 1 : 0);
 }
@@ -105,7 +111,17 @@ function parseDate(input) {
     if (m < 0) fail(`Unrecognised month in --date "${input}"`);
     return { display: `${MONTHS[m]} ${+named[2]}, ${named[3]}`, year: named[3] };
   }
-  fail(`Could not parse --date "${input}". Use "2026-03-15" or "March 15, 2026".`);
+  // Month precision only. The 2009-2011 archive folders encode YYYY-MM and the
+  // day of the event is not recorded anywhere, so "May 2011" has to be valid.
+  const isoMonth = input.match(/^(\d{4})-(\d{2})$/);
+  if (isoMonth) return { display: `${MONTHS[+isoMonth[2] - 1]} ${isoMonth[1]}`, year: isoMonth[1] };
+  const monthYear = input.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (monthYear) {
+    const m = MONTHS.findIndex((x) => x.toLowerCase() === monthYear[1].toLowerCase());
+    if (m < 0) fail(`Unrecognised month in --date "${input}"`);
+    return { display: `${MONTHS[m]} ${monthYear[2]}`, year: monthYear[2] };
+  }
+  fail(`Could not parse --date "${input}". Use "2026-03-15", "March 15, 2026" or "May 2011".`);
 }
 
 const escapeHtml = (s) =>
@@ -113,10 +129,44 @@ const escapeHtml = (s) =>
 
 const date = parseDate(args.date);
 const year = args.year || date.year;
-const slug = args.slug || `${slugPart(args.artist)}-at-${slugPart(args.venue)}`;
-const courtesy = args.courtesy || args.venue;
+const venue = args.venue || '';
+const slug = args.slug || (venue ? `${slugPart(args.artist)}-at-${slugPart(venue)}` : slugPart(args.artist));
+const courtesy = args.courtesy || venue;
 const photosBy = args['photos-by'] || '';
 const cover = parseInt(args.cover || '1', 10);
+
+/* ---------------------------------------------------------------- phrasing
+ * Not every /you/ event is a meet-and-greet at a named venue. The 2009-2011
+ * archive also holds fan shoots, a fun run and roller derby, and for most of
+ * those no venue was ever recorded. When --venue is omitted the venue line and
+ * the "at <venue>" phrasing drop out entirely rather than rendering a dangling
+ * "Meet and Greet at ". With --venue present the output is unchanged.
+ */
+const A = escapeHtml(args.artist);
+const V = escapeHtml(venue);
+const D = escapeHtml(date.display);
+
+const eventTitle = venue
+  ? `Meet and Greet with ${A} at ${V} | David Conger Photography | Concerts and Events | Seattle, WA`
+  : `${A} | Photos of You | David Conger Photography | Concerts and Events | Seattle, WA`;
+const eventDescription = venue
+  ? `Meet and greet photos of ${A} at ${V}, ${D}.`
+  : `Photos of you at ${A}, ${D}.`;
+const ogTitle = venue ? `Meet and Greet with ${A} at ${V}` : `${A} | Photos of You`;
+const venueBlock = venue ? `<span id="venue">Meet and Greet at ${V}</span><br />` : '';
+const intro = courtesy
+  ? `If you attended this event, courtesy of ${escapeHtml(courtesy)} you should find a copy of your photo below and are welcome to save a copy and share it on social media.`
+  : 'If you attended this event you should find a copy of your photo below and are welcome to save a copy and share it on social media.';
+
+const gridAlt = (n) => (venue ? `${A} at ${V}, photo ${n}` : `${A}, photo ${n}`);
+const photoAlt = (n, total) =>
+  venue ? `${A} at ${V}, photo ${n} of ${total}` : `${A}, photo ${n} of ${total}`;
+const photoTitle = (n, total) =>
+  venue
+    ? `${A} at ${V} - photo ${n} of ${total} | David Conger Photography`
+    : `${A} - photo ${n} of ${total} | David Conger Photography`;
+const photoDescription = (n) =>
+  venue ? `Meet and greet photo ${n} of ${A} at ${V}, ${D}.` : `Photo ${n} of you at ${A}, ${D}.`;
 
 /* ------------------------------------------------------------ source scan */
 
@@ -132,6 +182,9 @@ if (!sources.length) fail(`No .jpg files found in ${sourceDir}`);
 if (cover < 1 || cover > sources.length) {
   fail(`--cover ${cover} is out of range (1..${sources.length})`);
 }
+
+const presized = args.presized ? path.resolve(args.presized) : null;
+if (presized && !fs.existsSync(presized)) fail(`--presized folder not found: ${presized}`);
 
 const eventDir = path.join(ROOT, 'you', year, slug);
 const galleryDir = path.join(eventDir, 'gallery');
@@ -153,7 +206,7 @@ const photos = sources.map((src, i) => {
   };
 });
 
-console.log(`\n  event   : ${args.artist} at ${args.venue}`);
+console.log(`\n  event   : ${args.artist}${venue ? ` at ${venue}` : ''}`);
 console.log(`  date    : ${date.display}`);
 console.log(`  output  : you/${year}/${slug}/`);
 console.log(`  photos  : ${photos.length} (cover: #${cover})`);
@@ -181,28 +234,46 @@ function runResize(jobs, quality) {
 if (!dryRun) {
   fs.mkdirSync(galleryDir, { recursive: true });
 
-  // The display copies carry the photography, so they get the higher quality
-  // setting; thumbnails are 240px wide and nobody inspects them closely.
-  console.log('\n  resizing display images...');
-  runResize(
-    photos.map((p) => ({
-      src: p.src, dst: path.join(galleryDir, p.jpg),
-      width: FULL_MAX, height: FULL_MAX, mode: 'fit',
-    })),
-    88
-  );
+  if (presized) {
+    // The import already carries a display copy and a matching 240x160
+    // thumbnail and there are no surviving originals, so re-encoding would
+    // only throw away quality for nothing.
+    console.log('\n  copying pre-sized images...');
+    for (const p of photos) {
+      const name = path.basename(p.src);
+      const thumb = path.join(presized, name);
+      if (!fs.existsSync(thumb)) fail(`--presized folder has no thumbnail named ${name}`);
+      fs.copyFileSync(p.src, path.join(galleryDir, p.jpg));
+      fs.copyFileSync(thumb, path.join(galleryDir, p.sm));
+    }
+    fs.copyFileSync(
+      path.join(presized, path.basename(photos[cover - 1].src)),
+      path.join(eventDir, 'thumbnail.jpg')
+    );
+  } else {
+    // The display copies carry the photography, so they get the higher quality
+    // setting; thumbnails are 240px wide and nobody inspects them closely.
+    console.log('\n  resizing display images...');
+    runResize(
+      photos.map((p) => ({
+        src: p.src, dst: path.join(galleryDir, p.jpg),
+        width: FULL_MAX, height: FULL_MAX, mode: 'fit',
+      })),
+      88
+    );
 
-  console.log('  resizing thumbnails...');
-  runResize(
-    photos.map((p) => ({
-      src: p.src, dst: path.join(galleryDir, p.sm),
-      width: THUMB_W, height: THUMB_H, mode: 'cover',
-    })).concat([{
-      src: photos[cover - 1].src, dst: path.join(eventDir, 'thumbnail.jpg'),
-      width: THUMB_W, height: THUMB_H, mode: 'cover',
-    }]),
-    82
-  );
+    console.log('  resizing thumbnails...');
+    runResize(
+      photos.map((p) => ({
+        src: p.src, dst: path.join(galleryDir, p.sm),
+        width: THUMB_W, height: THUMB_H, mode: 'cover',
+      })).concat([{
+        src: photos[cover - 1].src, dst: path.join(eventDir, 'thumbnail.jpg'),
+        width: THUMB_W, height: THUMB_H, mode: 'cover',
+      }]),
+      82
+    );
+  }
 }
 
 /* ------------------------------------------------------------------ pages */
@@ -231,15 +302,18 @@ function jpegSize(file) {
 }
 
 const common = {
-  ARTIST: escapeHtml(args.artist),
-  VENUE: escapeHtml(args.venue),
-  DATE: escapeHtml(date.display),
+  ARTIST: A,
+  VENUE: V,
+  DATE: D,
   COURTESY: escapeHtml(courtesy),
   PHOTOSBY: photosBy,
   YEAR: year,
   SLUG: slug,
   COPYRIGHT: COPYRIGHT_YEAR,
   COUNT: String(photos.length),
+  VENUEBLOCK: venueBlock,
+  INTRO: intro,
+  OGTITLE: ogTitle,
 };
 
 const written = [];
@@ -251,13 +325,31 @@ function write(file, text) {
 }
 
 // Event index.
+/** Thumbnail dimensions. Generated thumbs are always 240x160, but a pre-sized
+ * import can carry portrait frames, and declaring the wrong size on those
+ * distorts them and shifts the layout as the grid loads. */
+function thumbSize(file) {
+  if (!presized || dryRun) return { width: THUMB_W, height: THUMB_H };
+  return jpegSize(file);
+}
+
 const items = photos
-  .map((p) => `\t\t<li><a href="gallery/${p.htm}"><img src="gallery/${p.sm}" width="${THUMB_W}" height="${THUMB_H}" loading="lazy" decoding="async" alt="${escapeHtml(args.artist)} at ${escapeHtml(args.venue)}, photo ${p.num}"/></a></li>`)
+  .map((p) => {
+    const t = thumbSize(path.join(galleryDir, p.sm));
+    return `\t\t<li><a href="gallery/${p.htm}"><img src="gallery/${p.sm}" width="${t.width}" height="${t.height}" loading="lazy" decoding="async" alt="${gridAlt(p.num)}"/></a></li>`;
+  })
   .join('\n');
 
 write(
   path.join(eventDir, 'index.htm'),
-  render(tpl('you-event.htm'), { ...common, ROOT: '../../../', IMAGES: items })
+  render(tpl('you-event.htm'), {
+    ...common,
+    ROOT: '../../../',
+    IMAGES: items,
+    PAGETITLE: eventTitle,
+    DESCRIPTION: eventDescription,
+    CANONICAL: `${SITE}/you/${year}/${slug}/`,
+  })
 );
 
 // One page per photo, with previous/next so a visitor can page through the set
@@ -286,6 +378,10 @@ photos.forEach((p, i) => {
       WIDTH: String(dims.width),
       HEIGHT: String(dims.height),
       NAVIGATION: nav,
+      PAGETITLE: photoTitle(p.num, photos.length),
+      DESCRIPTION: photoDescription(p.num),
+      ALT: photoAlt(p.num, photos.length),
+      CANONICAL: `${SITE}/you/${year}/${slug}/gallery/${p.htm}`,
     })
   );
 });
@@ -300,14 +396,15 @@ if (!args.flags.has('no-listing')) {
   if (html.includes(marker)) {
     console.log('\n  you/index.htm already lists this event, left unchanged.');
   } else {
+    const cov = thumbSize(path.join(eventDir, 'thumbnail.jpg'));
     const li = [
       '\t\t<li>',
       '\t\t\t<div>',
       `\t\t\t\t<a href="${year}/${slug}/">`,
-      `\t\t\t\t\t<img src="${year}/${slug}/thumbnail.jpg" alt="${escapeHtml(args.artist)}" width="${THUMB_W}" height="${THUMB_H}" loading="lazy" decoding="async"/><br/>`,
-      `\t\t\t\t\t<event>${escapeHtml(args.artist)}</event><br/>`,
-      `\t\t\t\t\t<venue>${escapeHtml(args.venue)}</venue><br/>`,
-      `\t\t\t\t\t<date>${escapeHtml(date.display)}</date>`,
+      `\t\t\t\t\t<img src="${year}/${slug}/thumbnail.jpg" alt="${A}" width="${cov.width}" height="${cov.height}" loading="lazy" decoding="async"/><br/>`,
+      `\t\t\t\t\t<event>${A}</event><br/>`,
+      ...(venue ? [`\t\t\t\t\t<venue>${V}</venue><br/>`] : []),
+      `\t\t\t\t\t<date>${D}</date>`,
       '\t\t\t\t</a>',
       '\t\t\t</div>',
       '\t\t</li>',

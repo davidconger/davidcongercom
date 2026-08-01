@@ -238,6 +238,58 @@ source for `/you/` pages.
 Run with `--dry-run` first: it reports every file it would write without
 touching the disk.
 
+`--venue` is optional. When it is omitted the "Meet and Greet at &lt;venue&gt;"
+line and the "at &lt;venue&gt;" phrasing drop out of the title, description and
+alt text instead of rendering a dangling preposition. `--date` also accepts month
+precision (`"May 2011"` or `2011-05`) for archive material whose exact day was
+never recorded.
+
+`--presized <dir>` skips resizing entirely: `--source` is copied through as the
+display image and `<dir>` supplies the matching thumbnail, filename for
+filename. That is for importing archives that were already sized and have no
+surviving originals, where re-encoding would only lose quality. In this mode the
+thumbnail's real dimensions are read from the file rather than assumed to be
+240x160, because a pre-sized set can contain portrait frames.
+
+## convert-you-old.js
+
+Converts the 2009-2011 `you_old/` archive into the current `/you/` structure.
+
+`you_old` is the original "Photos of You" system. It was served by an ASP.NET app
+on a separate subdomain (`you.davidconger.com/<event>/index.aspx`) that no longer
+resolves, and the tree was never migrated when `/you/` was rebuilt —
+`you/previous.htm` started at 2013. Nothing under `you_old/` was reachable on the
+live site, so the conversion is purely additive: there were no public URLs to
+preserve.
+
+```bash
+node tools/convert-you-old.js --list                        # inventory, writes nothing
+node tools/convert-you-old.js --only 2011-05-hot-chelle-rae # one event
+node tools/convert-you-old.js --all
+```
+
+Per event, `tp/` holds the display copies (400-700px) and `sm/` the thumbnails,
+already exactly 240x160, under identical filenames. Both are copied through
+untouched via `new-gallery.js --presized` — `tp/` is the largest copy that
+exists, so re-encoding would only lose quality.
+
+Titles and cover frames are recovered from `you_old/index.htm`, the only
+surviving listing; the original cover choice is preserved when that frame is
+still present. Dates are month-precision only, because the folder name encodes
+`YYYY-MM` and the day of the event was never recorded anywhere in the tree, so
+`you/previous.htm` entries read `MM.YYYY` rather than inventing a day.
+
+Two events (`2010-07-the-maine`, `2010-09-john-legend`) are linked from the old
+listing by thumbnail alone with no anchor text, so their titles are supplied from
+the `TITLE_FALLBACK` map in the script.
+
+`you_old/private/` is never converted — those folders were given deliberately
+obfuscated names because they were meant to stay unlisted.
+
+Result: 24 events, 1,833 photos, 1,857 new pages under `/you/2009/`, `/you/2010/`
+and `/you/2011/`, all with canonical, description, OpenGraph and complete `alt`
+coverage.
+
 ## resize-images.ps1
 
 Batch image resizer built on .NET `System.Drawing`, so it needs no npm packages
@@ -431,6 +483,7 @@ in 2013), two galleries with unescaped apostrophes in their paths
 | Phase 4/5 — markup modernization | 9,598 | 4,072 | **0** |
 | Phase 6 — generator + CSS consolidation | 9,596 | 4,068 | **0** |
 | Phase 7 — hosting, sitemap and SEO | 9,597 | 4,068 | **0** |
+| you_old conversion | 11,448 | 4,052 | **0** |
 
 The large drop in phase 4/5 is mostly the deletion of 161 timestamped
 `catalog/*/_data/index-old-*.htm` backups, which between them referenced tens of
