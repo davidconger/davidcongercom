@@ -1,5 +1,5 @@
 /* --------------------------------------------------------------------------
-   PROTOTYPE -- year stream rotator
+   Year stream rotator
 
    One delegated listener for the whole page rather than one per show: a year
    can carry eighty shows, and eighty sets of listeners is eighty sets of
@@ -98,6 +98,9 @@
 	var onScreen = [];
 	var held = new WeakMap();
 	var lastPicked = null;
+	var observer = null;
+	var watched = new WeakSet();
+	var ticking = null;
 
 	function hold(show) {
 		held.set(show, Date.now() + HOLD_MS);
@@ -129,29 +132,45 @@
 		if (!shows.length) return;
 
 		if (window.IntersectionObserver) {
-			var io = new IntersectionObserver(function (entries) {
-				entries.forEach(function (entry) {
-					var at = onScreen.indexOf(entry.target);
-					// Half the frame has to be showing to qualify, so a show
-					// clipped by the fold does not change while half hidden.
-					if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-						if (at < 0) onScreen.push(entry.target);
-					} else if (at > -1) {
-						onScreen.splice(at, 1);
-					}
-				});
-			}, { threshold: [0, 0.5, 1] });
+			if (!observer) {
+				observer = new IntersectionObserver(function (entries) {
+					entries.forEach(function (entry) {
+						var at = onScreen.indexOf(entry.target);
+						// Half the frame has to be showing to qualify, so a show
+						// clipped by the fold does not change while half hidden.
+						if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+							if (at < 0) onScreen.push(entry.target);
+						} else if (at > -1) {
+							onScreen.splice(at, 1);
+						}
+					});
+				}, { threshold: [0, 0.5, 1] });
+			}
 			for (var i = 0; i < shows.length; i++) {
-				if (shows[i].querySelectorAll('.showDots button').length > 1) io.observe(shows[i]);
+				if (watched.has(shows[i])) continue;
+				if (shows[i].querySelectorAll('.showDots button').length > 1) {
+					watched.add(shows[i]);
+					observer.observe(shows[i]);
+				}
 			}
 		}
 
-		setInterval(tick, TICK_MS);
+		if (ticking === null) ticking = setInterval(tick, TICK_MS);
 	}
 
 	// Someone who has asked for less movement gets the page without any.
 	var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
-	if (!calm || !calm.matches) start();
+	var still = !!(calm && calm.matches);
+	if (!still) start();
+
+	/* The home page builds its rotator from JSON after this file has already
+	   run, so it needs a way to say "there is a show now". Everything else --
+	   clicks, dots, keyboard -- is delegated from the document and works on
+	   markup that did not exist at load; only the intersection observer and the
+	   ambient timer have to be told. */
+	window.dcStream = {
+		refresh: function () { if (!still) start(); }
+	};
 
 	/* ----------------------------------------------------------------------
 	   Sticky chrome

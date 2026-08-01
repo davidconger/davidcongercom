@@ -1,14 +1,14 @@
 /* --------------------------------------------------------------------------
-   PROTOTYPE -- year stream
+   Year stream
 
-   A concept for replacing the thumbnail catalog as the destination for
-   "Concert & Event Photos": a scrollable year of full 640px frames rather than
-   a grid of 240x160 crops.
+   The destination for "Concert & Event Photos": a scrollable year of full
+   640px frames rather than a grid of 240x160 crops. Loaded by the year pages
+   at /galleries/<year>/, by the individual gallery pages beneath them, and by
+   the home page, all of which share the same chrome.
 
-   Layered on top of css/site.css, which supplies the palette and the page
-   chrome. This file loads only on prototype pages, so where it does restyle
-   shared chrome -- the header bar and the social icons -- nothing else on the
-   site is affected.
+   Layered on top of css/site.css, which supplies the palette and the base page
+   chrome. Where this file restyles shared chrome -- the header bar and the
+   social icons -- it only reaches pages that opt in by linking it.
    -------------------------------------------------------------------------- */
 
 /* The frame width every band of the page shares: two 640px photographs plus
@@ -372,8 +372,7 @@ body {
 .yearNav {
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	gap: 10px;
+	justify-content: center;	gap: 10px;
 }
 
 .yearLabel {
@@ -381,7 +380,39 @@ body {
 	font-size: 19px;
 	letter-spacing: 3px;
 	color: #a6a6a6;
-	transition: font-size 240ms ease, letter-spacing 240ms ease;
+	transition: font-size 240ms ease, letter-spacing 240ms ease, color 180ms ease;
+}
+
+/* On a year page the label is also the way out to the list of every year. It
+   gives no sign of that at rest -- the bar has two arrows in it already, and a
+   third piece of obvious chrome would make the band busier than the
+   photographs below it -- but it lifts to full contrast under the pointer.
+   The site-wide a:hover rule outranks a single class, so every link state is
+   stated here rather than inherited. */
+a.yearLabel,
+a.yearLabel:link,
+a.yearLabel:visited,
+a.yearLabel:active {
+	color: #a6a6a6;
+	text-decoration: none;
+}
+
+a.yearLabel:hover,
+a.yearLabel:focus-visible {
+	color: var(--dc-fg, #ffffff);
+	text-decoration: none;
+}
+
+a.yearLabel:focus-visible {
+	outline: 2px solid #0066ff;
+	outline-offset: 4px;
+	border-radius: 2px;
+}
+
+/* The list page's own label is the span of the archive rather than one year,
+   so it needs room for "2009-2020" and has nowhere to link to. */
+.yearLabel.is-static {
+	min-width: 0;
 }
 
 .yearBar.is-stuck .yearLabel {
@@ -621,8 +652,8 @@ a.yearStep:focus-visible {
 	   behind short names. */
 	min-width: 32%;
 	max-width: 92%;
-	padding: 7px 12px 8px 22px;
-	text-align: right;
+	padding: 7px 18px 8px 18px;
+	text-align: center;
 	line-height: 1.35;
 	/* The panel is a ramp, not a flat fill, and that is a correctness decision
 	   as much as a visual one.
@@ -776,5 +807,74 @@ a.yearStep:focus-visible {
 	.showSlide,
 	.showDots button {
 		transition: none;
+	}
+}
+
+/* --------------------------------------------------------------------------
+   Home page
+
+   The home page is one show in the same grid the year pages use, so almost
+   everything above applies unchanged. What differs is the band under the
+   masthead: where a year page carries its year, the home page carries the three
+   sections of the site. Same band, same weight, so the two pages read as the
+   same design rather than as two that happen to share a header.
+   -------------------------------------------------------------------------- */
+
+.yearBar .siteNav {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 6px 30px;
+	padding: 0;
+}
+
+/* Matched to .yearLabel, and stating every link state because the site-wide
+   a:hover rule -- specificity (0,1,1) -- outranks any single class and would
+   otherwise turn these blue and underline them. */
+.yearBar .siteNav a,
+.yearBar .siteNav a:link,
+.yearBar .siteNav a:visited,
+.yearBar .siteNav a:active {
+	font-family: var(--dc-font-display);
+	font-size: 15px;
+	letter-spacing: 2.2px;
+	color: #a6a6a6;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: color 180ms ease;
+}
+
+.yearBar .siteNav a:hover,
+.yearBar .siteNav a:focus-visible {
+	color: var(--dc-fg, #ffffff);
+	text-decoration: none;
+}
+
+.yearBar .siteNav a:focus-visible {
+	outline: 2px solid #0066ff;
+	outline-offset: 4px;
+	border-radius: 2px;
+}
+
+/* The rotator is built from JSON after the page loads, so the show starts
+   hidden rather than as an empty frame that collapses when the first slide
+   arrives. .show sets its own display, which beats the [hidden] attribute's
+   UA rule, so it has to be said again here. */
+.show[hidden] {
+	display: none;
+}
+
+@media (max-width: 560px) {
+	.yearBar .siteNav {
+		gap: 4px 18px;
+	}
+
+	.yearBar .siteNav a,
+	.yearBar .siteNav a:link,
+	.yearBar .siteNav a:visited,
+	.yearBar .siteNav a:active {
+		font-size: 13px;
+		letter-spacing: 1.4px;
 	}
 }

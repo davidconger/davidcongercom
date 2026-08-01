@@ -1,21 +1,22 @@
 /**
- * PROTOTYPE -- builds the "year stream" concept into _proto/, which is excluded
- * from the sitemap and from deployment. Nothing under catalog/ or you/ is
- * touched.
+ * Builds the "year stream" pages -- galleries/<year>/index.htm -- one page per
+ * year of the archive. Nothing under catalog/ or you/ is touched, and no
+ * existing URL is taken: /galleries/<year>/ was an unused level between the
+ * gallery index and the per-month folders.
  *
- * The idea being tested: replace the thumbnail catalog as the destination for
- * "Concert & Event Photos" with a scrollable year of full 640px frames, two per
- * row on a desktop and one on a phone, each carrying the homepage-style caption
- * and an optional small rotator for a second or third frame from that show.
+ * What these pages replace: the thumbnail catalog as the destination for
+ * "Concert & Event Photos". A year is a scrollable column of full 640px frames,
+ * two per row on a desktop and one on a phone, each carrying a caption and an
+ * optional small rotator for a second or third frame from that show.
  *
- * The part that needs proving is the caption. Today it is a flat grey panel
+ * The part that needed proving is the caption. It used to be a flat grey panel
  * whose real job is covering the burned-in davidconger.com watermark. Here it
- * is tinted to the photograph behind it: sample-overlay-colors.ps1 measures the
- * bottom-right of each frame at build time, and the result becomes a diagonal
- * gradient -- light in the corner where the panel meets the photograph, opaque
- * by the time it reaches the watermark -- plus a text colour chosen for
- * contrast. Doing it at build time keeps the output static: no canvas, no CORS,
- * no flash of grey before the tint lands.
+ * is tinted to the photograph behind it: the bottom-right of each frame is
+ * measured at build time, and the result becomes a diagonal gradient -- light
+ * in the corner where the panel meets the photograph, opaque by the time it
+ * reaches the watermark -- plus a text colour chosen for contrast. Doing it at
+ * build time keeps the output static: no canvas, no CORS, no flash of grey
+ * before the tint lands.
  *
  * Usage:
  *   node tools/build-stream.js --year 2019 --year 2020
@@ -28,11 +29,17 @@
  */
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
-const { execFileSync } = require('child_process');
+const { sampleColors, captionStyle } = require('./lib/caption');
+const { CHEVRON_LEFT, CHEVRON_RIGHT, topBar, homeLink, masthead, footer } = require('./lib/chrome');
 
 const ROOT = path.resolve(__dirname, '..');
-const OUT = path.join(ROOT, '_proto', 'stream');
+// The year pages live alongside the galleries they index, at
+// /galleries/<year>/. Nothing occupied that path before -- the archive only
+// ever had /galleries/<year>/<month>/<slug>/ -- so this adds a URL rather than
+// taking one, and it makes each year the natural parent of the shows beneath
+// it, which is what lets a gallery page link back up with a plain "../../".
+const OUT = path.join(ROOT, 'galleries');
+const SITE = 'https://www.davidconger.com';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -325,68 +332,15 @@ function shows(year) {
   return out.slice(0, limit);
 }
 
-/* -------------------------------------------------------- overlay sampling */
-
-function sampleColors(paths) {
-  if (!paths.length) return new Map();
-  const jobFile = path.join(os.tmpdir(), `dc-sample-${process.pid}.json`);
-  const outFile = path.join(os.tmpdir(), `dc-sample-out-${process.pid}.json`);
-  fs.writeFileSync(jobFile, JSON.stringify(paths), 'utf8');
-  try {
-    execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-      path.join(__dirname, 'sample-overlay-colors.ps1'),
-      '-JobFile', jobFile, '-OutFile', outFile,
-      // Matches the caption's own footprint: bottom 18% of the frame, right
-      // 40%. Sampling a wider region than the panel actually covers pulls the
-      // tint toward parts of the photograph the viewer can still see, which is
-      // exactly what makes the join visible.
-      '-CropTop', '0.82', '-CropLeft', '0.60'], { stdio: 'inherit' });
-    const raw = JSON.parse(fs.readFileSync(outFile, 'utf8'));
-    return new Map((Array.isArray(raw) ? raw : [raw]).map((r) => [r.path, r]));
-  } finally {
-    for (const f of [jobFile, outFile]) if (fs.existsSync(f)) fs.unlinkSync(f);
-  }
-}
-
-/**
- * Turns a sampled colour into a caption fill.
- *
- * Two deliberate moves. First a partial desaturation, because a single
- * saturated stage light at the bottom of the frame would otherwise produce a
- * violently magenta caption. Second a push toward black or white depending on
- * which side of mid-grey the sample sits, which is what keeps the text legible
- * without abandoning the photograph's own colour.
- */
-/**
- * Turns a sampled colour into a caption fill.
- *
- * Two problems to solve. A single saturated stage light produces a violently
- * coloured panel, so the chroma is capped -- but by scaling the spread rather
- * than washing every sample out by a fixed amount, which is what a flat
- * desaturation did. A muted photograph keeps its colour; only the extreme ones
- * are pulled back. The panel then moves toward black or white depending on what
- * it is covering, far enough to stay readable and no further.
- */
-function captionFill(rgb, lum, alpha) {
-  const MAX_CHROMA = 60;
-  const mean = (rgb[0] + rgb[1] + rgb[2]) / 3;
-  const dark = lum <= 0.5;
-  const target = dark ? 0 : 255;
-  const pull = dark ? 0.46 : 0.4;
-  const spread = Math.max(rgb[0], rgb[1], rgb[2]) - Math.min(rgb[0], rgb[1], rgb[2]);
-  const damp = spread > MAX_CHROMA ? MAX_CHROMA / spread : 1;
-  const c = rgb.map((v) => {
-    const toned = mean + (v - mean) * damp;
-    return Math.round(toned + (target - toned) * pull);
-  });
-  return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${alpha})`;
-}
-
 /* ------------------------------------------------------------------ render */
 
 function renderShow(show, colors) {
-  const up = '../../../';
-  const href = `${up}galleries/${show.href}`;
+  // The page sits at galleries/<year>/, which is the parent of every show it
+  // lists, so frames and galleries are addressed by the part of the path below
+  // the year. The exceptions are the 2009-era shows whose page is a flat file
+  // at galleries/<slug>.htm, one level up.
+  const within = (p) => p.replace(/^\d{4}\//, '');
+  const href = /^\d{4}\//.test(show.href) ? within(show.href) : `../${show.href}`;
   const many = show.frames.length > 1;
 
   // The photograph advances the rotator and the caption is the way through to
@@ -399,25 +353,13 @@ function renderShow(show, colors) {
 						${show.date ? `<span class="showDate">${escapeHtml(show.date.text)}</span>` : ''}
 					</a>`;
   const slides = show.frames.map((f, i) => {
-    const abs = path.join(ROOT, 'galleries', show.rel, f.file);
-    const c = colors.get(abs);
-    const lum = c ? c.lum : 0.2;
-    const style = c
-      // The ramp runs corner to corner, from the panel's top-left to its
-      // bottom-right, so it can carry an alpha shift as well as a colour one:
-      // open where the panel meets the photograph, opaque by the time it
-      // reaches the burned-in watermark in the bottom-right. --cap-top is
-      // sampled from the upper half of the panel's footprint and --cap-bot
-      // from the lower half.
-      //
-      // --cap-bot must stay at 0.99 or above. That end of the ramp is the only
-      // thing masking the wordmark; the stylesheet's backdrop-filter helps but
-      // cannot be relied on, because any ancestor stacking context disables it
-      // without warning. See the long note in stream.css.
-      ? `--cap-top:${captionFill(c.top, lum, 0.5)};--cap-bot:${captionFill(c.bottom, lum, 0.995)};--cap-fg:${lum <= 0.5 ? 'rgba(255,255,255,.88)' : 'rgba(17,17,17,.86)'}`
-      : '';
+    // The ramp runs corner to corner, from the panel's top-left to its
+    // bottom-right, so it carries an alpha shift as well as a colour one: open
+    // where the panel meets the photograph, opaque by the time it reaches the
+    // burned-in watermark in the bottom-right. See tools/lib/caption.js.
+    const style = captionStyle(colors.get(path.join(ROOT, 'galleries', show.rel, f.file)));
     return `				<div class="showSlide${i === 0 ? ' is-active' : ''}" style="${style}"${i === 0 ? '' : ' aria-hidden="true"'}>
-					<img src="${up}galleries/${show.rel}/${f.file}" width="${f.width}" height="${f.height}" alt="${escapeHtml(show.artist)}" loading="lazy" decoding="async">${caption(i)}
+					<img src="${within(show.rel)}/${f.file}" width="${f.width}" height="${f.height}" alt="${escapeHtml(show.artist)}" loading="lazy" decoding="async">${caption(i)}
 				</div>`;
   }).join('\n');
 
@@ -436,23 +378,31 @@ ${slides}
 function renderYear(year, list, colors, available) {
   const prev = available.filter((y) => +y < +year).pop();
   const next = available.filter((y) => +y > +year).shift();
-  const up = '../../../';
+  const up = '../../';
 
-  const CHEVRON_LEFT = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M15.5303 4.21967C15.8232 4.51256 15.8232 4.98744 15.5303 5.28033L8.81066 12L15.5303 18.7197C15.8232 19.0126 15.8232 19.4874 15.5303 19.7803C15.2374 20.0732 14.7626 20.0732 14.4697 19.7803L7.21967 12.5303C6.92678 12.2374 6.92678 11.7626 7.21967 11.4697L14.4697 4.21967C14.7626 3.92678 15.2374 3.92678 15.5303 4.21967Z"/></svg>';
-  const CHEVRON_RIGHT = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8.46967 4.21967C8.17678 4.51256 8.17678 4.98744 8.46967 5.28033L15.1893 12L8.46967 18.7197C8.17678 19.0126 8.17678 19.4874 8.46967 19.7803C8.76256 20.0732 9.23744 20.0732 9.53033 19.7803L16.7803 12.5303C17.0732 12.2374 17.0732 11.7626 16.7803 11.4697L9.53033 4.21967C9.23744 3.92678 8.76256 3.92678 8.46967 4.21967Z"/></svg>';
+  // A year page's description is worth more than "photographs from 2019" -- the
+  // names on it are what anyone would actually search for -- so the first few
+  // artists go into the description and the social card.
+  const names = [];
+  for (const s of list) {
+    if (names.length >= 6) break;
+    if (s.artist && !names.includes(s.artist)) names.push(s.artist);
+  }
+  const summary = names.length
+    ? `${list.length} concerts and events photographed by David Conger in ${year}, including ${names.join(', ')}.`
+    : `Concerts and events photographed by David Conger in ${year}.`;
+  const lead = list.length ? `${list[0].rel}/${list[0].frames[0].file}` : '';
 
-  // Fluent's home glyph, regular and filled, swapped on hover exactly as the
-  // mail icon is -- so the one navigation control on the page reads as part of
-  // the same set as the social links rather than as leftover text.
-  const HOME_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path class="iconRegular" fill="currentColor" d="M10.5495 2.53189C11.3874 1.82531 12.6126 1.82531 13.4505 2.5319L20.2005 8.224C20.7074 8.65152 21 9.2809 21 9.94406L21 19.2539C21 20.2204 20.2165 21.0039 19.25 21.0039H15.75C14.7835 21.0039 14 20.2204 14 19.2539L14 14.2468C14 14.1088 13.8881 13.9968 13.75 13.9968H10.25C10.1119 13.9968 9.99999 14.1088 9.99999 14.2468L9.99999 19.2539C9.99999 20.2204 9.2165 21.0039 8.25 21.0039H4.75C3.7835 21.0039 3 20.2204 3 19.2539V9.94406C3 9.2809 3.29255 8.65152 3.79952 8.224L10.5495 2.53189ZM12.4835 3.6786C12.2042 3.44307 11.7958 3.44307 11.5165 3.6786L4.76651 9.37071C4.59752 9.51321 4.5 9.72301 4.5 9.94406L4.5 19.2539C4.5 19.392 4.61193 19.5039 4.75 19.5039H8.25C8.38807 19.5039 8.49999 19.392 8.49999 19.2539L8.49999 14.2468C8.49999 13.2803 9.2835 12.4968 10.25 12.4968H13.75C14.7165 12.4968 15.5 13.2803 15.5 14.2468L15.5 19.2539C15.5 19.392 15.6119 19.5039 15.75 19.5039H19.25C19.3881 19.5039 19.5 19.392 19.5 19.2539L19.5 9.94406C19.5 9.72301 19.4025 9.51321 19.2335 9.37071L12.4835 3.6786Z"/><path class="iconFilled" fill="currentColor" d="M13.4508 2.53318C12.6128 1.82618 11.3872 1.82618 10.5492 2.53318L3.79916 8.22772C3.29241 8.65523 3 9.28447 3 9.94747V19.2526C3 20.2191 3.7835 21.0026 4.75 21.0026H7.75C8.7165 21.0026 9.5 20.2191 9.5 19.2526V15.25C9.5 14.5707 10.0418 14.018 10.7169 14.0004H13.2831C13.9582 14.018 14.5 14.5707 14.5 15.25V19.2526C14.5 20.2191 15.2835 21.0026 16.25 21.0026H19.25C20.2165 21.0026 21 20.2191 21 19.2526V9.94747C21 9.28447 20.7076 8.65523 20.2008 8.22772L13.4508 2.53318Z"/></svg>';
+
 
   // Arrows rather than a list of adjacent years: the control says which year
-  // you are in and which way to go, and nothing else.
+  // you are in and which way to go, and nothing else. The year itself is the
+  // way out to the full list, which is the only other place to go from here.
   const yearNav = `<nav class="yearNav" aria-label="Year">
 		${prev
       ? `<a class="yearStep" href="../${prev}/" rel="prev" aria-label="${prev}" title="${prev}">${CHEVRON_LEFT}</a>`
       : `<span class="yearStep is-disabled" aria-hidden="true">${CHEVRON_LEFT}</span>`}
-		<span class="yearLabel">${year}</span>
+		<a class="yearLabel" href="../" title="All years">${year}</a>
 		${next
       ? `<a class="yearStep" href="../${next}/" rel="next" aria-label="${next}" title="${next}">${CHEVRON_RIGHT}</a>`
       : `<span class="yearStep is-disabled" aria-hidden="true">${CHEVRON_RIGHT}</span>`}
@@ -464,47 +414,31 @@ function renderYear(year, list, colors, available) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">
 
 <title>${year} Concert &amp; Event Photos | The Concert Photography of David Conger</title>
-<meta name="description" content="Concerts and events photographed by David Conger in ${year}.">
+<meta name="description" content="${escapeHtml(summary)}">
+<link rel="canonical" href="${SITE}/galleries/${year}/">
 
 <link href='https://fonts.googleapis.com/css?family=Hind:400,600' rel='stylesheet' type='text/css' />
 <link rel="stylesheet" href="${up}css/site.css">
-<link rel="stylesheet" href="../stream.css">
-<script src="../stream.js" defer></script>
+<link rel="stylesheet" href="${up}css/stream.css">
+<meta property="og:title" content="${year} Concert &amp; Event Photos" />
+<meta property="og:description" content="${escapeHtml(summary)}" />
+<meta property="og:url" content="${SITE}/galleries/${year}/" />${lead ? `
+<meta property="og:image" content="${SITE}/galleries/${lead}" />` : ''}
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="www.davidconger.com" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@dcongerphoto" />
+<script src="${up}js/stream.js" defer></script>
+<script src="${up}js/azureinsights.js" defer></script>
 </head>
 
 <body>
 
-<div class="streamTopBar">
-	<div class="streamBar topBarInner">
-		<div class="headerNavText streamSocial streamHome">
-			<a class="socialLink socialHome" href="${up}index.htm" aria-label="Home" title="Home">${HOME_ICON}</a>
-		</div>
-		<div class="brandCompact"><span class="brandCompactName">David Conger Photography</span> <span class="brandCompactPlace">Seattle, WA</span></div>
-		<div class="headerSocialLinks streamSocial">
-			<a class="socialLink socialInstagram" target="_top" href="https://instagram.com/dcongerphoto" aria-label="David Conger Photography on Instagram" title="Instagram">
-				<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true" focusable="false"><path fill="currentColor" d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></svg>
-			</a>
-			<a class="socialLink socialX" target="_top" href="https://twitter.com/dcongerphoto" aria-label="David Conger Photography on X" title="X">
-				<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" focusable="false"><path fill="currentColor" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
-			</a>
-			<a class="socialLink socialFacebook" target="_top" href="https://www.facebook.com/pages/david-conger-photography/139826329427348" aria-label="David Conger Photography on Facebook" title="Facebook">
-				<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg>
-			</a>
-			<a class="socialLink socialMail" target="_top" href="mailto:david@davidconger.com" aria-label="Email David Conger" title="Email">
-				<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path class="iconRegular" fill="currentColor" d="M5.25 4H18.75C20.483 4 21.8992 5.35645 21.9949 7.06558L22 7.25V16.75C22 18.483 20.6435 19.8992 18.9344 19.9949L18.75 20H5.25C3.51697 20 2.10075 18.6435 2.00514 16.9344L2 16.75V7.25C2 5.51697 3.35645 4.10075 5.06558 4.00514L5.25 4H18.75H5.25ZM20.5 9.373L12.3493 13.6637C12.1619 13.7623 11.9431 13.7764 11.7468 13.706L11.6507 13.6637L3.5 9.374V16.75C3.5 17.6682 4.20711 18.4212 5.10647 18.4942L5.25 18.5H18.75C19.6682 18.5 20.4212 17.7929 20.4942 16.8935L20.5 16.75V9.373ZM18.75 5.5H5.25C4.33183 5.5 3.57881 6.20711 3.5058 7.10647L3.5 7.25V7.679L12 12.1525L20.5 7.678V7.25C20.5 6.33183 19.7929 5.57881 18.8935 5.5058L18.75 5.5Z"/><path class="iconFilled" fill="currentColor" d="M22 8.608V16.75C22 18.483 20.6435 19.8992 18.9344 19.9949L18.75 20H5.25C3.51697 20 2.10075 18.6435 2.00514 16.9344L2 16.75V8.608L11.652 13.6644C11.87 13.7785 12.13 13.7785 12.348 13.6644L22 8.608ZM5.25 4H18.75C20.4347 4 21.8201 5.28191 21.9838 6.92355L12 12.1533L2.01619 6.92355C2.17386 5.34271 3.46432 4.09545 5.06409 4.00523L5.25 4H18.75H5.25Z"/></svg>
-			</a>
-		</div>
-	</div>
-</div>
+${topBar(up, homeLink(up))}
 
-<div class="headerText streamHeader">
-	<div class="headerTextPre">the concert &amp; event photography of</div>
-	<div class="headerTextMain">David Conger</div>
-	<div class="headerTextSub"><a class="quietLink" href="mailto:david@davidconger.com">david@davidconger.com</a> | Seattle, WA</div>
-</div>
+${masthead()}
 
 <div class="yearBar">
 	${yearNav}
@@ -517,8 +451,100 @@ ${list.map((s) => renderShow(s, colors)).join('\n')}
 </main>
 
 
-<p class="siteFooter streamFooter">
-Copyright 2008-2026 | David Conger, LLC | All Rights Reserved<br />Not for distribution or reuse without permission.</p>
+${footer()}
+
+</body>
+
+</html>
+`;
+}
+
+/* ---------------------------------------------------------------- year list */
+
+/**
+ * The landing page at /galleries/ -- one card per year, newest first.
+ *
+ * It reads the year pages back off disk rather than taking the years built in
+ * this run, so a single-year rebuild leaves it correct instead of shrinking it
+ * to one entry. Everything it needs is already in the markup: the lead frame,
+ * its caption tint, and how many shows the year holds.
+ */
+function renderIndex() {
+  const years = fs.readdirSync(OUT, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && /^\d{4}$/.test(e.name))
+    .map((e) => e.name)
+    .filter((y) => fs.existsSync(path.join(OUT, y, 'index.htm')))
+    .sort()
+    .reverse();
+  if (!years.length) return null;
+
+  const cards = years.map((year) => {
+    const html = fs.readFileSync(path.join(OUT, year, 'index.htm'), 'utf8');
+    const slide = /<div class="showSlide is-active" style="([^"]*)">\s*<img src="([^"]+)" width="(\d+)" height="(\d+)"/.exec(html);
+    const count = (html.match(/<li class="show/g) || []).length;
+    if (!slide) return '';
+    const [, style, src, w, h] = slide;
+    return `		<li class="show">
+			<div class="showFrame">
+				<div class="showSlide is-active" style="${style}">
+					<img src="${year}/${src}" width="${w}" height="${h}" alt="${year}" loading="lazy" decoding="async">
+					<a class="showCaption" href="${year}/">
+						<span class="showArtist">${year}</span><span class="showVenue">${count} ${count === 1 ? 'gallery' : 'galleries'}</span>
+					</a>
+				</div>
+			</div>
+		</li>`;
+  }).filter(Boolean).join('\n');
+
+  const up = '../';
+  const span = `${years[years.length - 1]}\u2013${years[0]}`;
+  const summary = `Every concert and event gallery by David Conger, ${span}, one page per year.`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Concert &amp; Event Photos | The Concert Photography of David Conger</title>
+<meta name="description" content="${escapeHtml(summary)}">
+<link rel="canonical" href="${SITE}/galleries/">
+
+<link href='https://fonts.googleapis.com/css?family=Hind:400,600' rel='stylesheet' type='text/css' />
+<link rel="stylesheet" href="${up}css/site.css">
+<link rel="stylesheet" href="${up}css/stream.css">
+<meta property="og:title" content="Concert &amp; Event Photos" />
+<meta property="og:description" content="${escapeHtml(summary)}" />
+<meta property="og:url" content="${SITE}/galleries/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="www.davidconger.com" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@dcongerphoto" />
+<script src="${up}js/stream.js" defer></script>
+<script src="${up}js/azureinsights.js" defer></script>
+</head>
+
+<body>
+
+${topBar(up, homeLink(up))}
+
+${masthead()}
+
+<div class="yearBar">
+	<nav class="yearNav" aria-label="Year">
+		<span class="yearLabel is-static">${span}</span>
+	</nav>
+</div>
+
+<main class="stream">
+	<ul class="showGrid">
+${cards}
+	</ul>
+</main>
+
+
+${footer()}
 
 </body>
 
@@ -551,7 +577,13 @@ for (const year of built) {
   fs.mkdirSync(dir, { recursive: true });
   const html = renderYear(year, data.get(year), colors, built);
   fs.writeFileSync(path.join(dir, 'index.htm'), html, 'utf8');
-  console.log(`  wrote _proto/stream/${year}/index.htm (${(html.length / 1024).toFixed(0)} KB)`);
+  console.log(`  wrote galleries/${year}/index.htm (${(html.length / 1024).toFixed(0)} KB)`);
 }
 
-console.log(`\n  http://localhost:8099/_proto/stream/${built[built.length - 1]}/`);
+const indexHtml = renderIndex();
+if (indexHtml) {
+  fs.writeFileSync(path.join(OUT, 'index.htm'), indexHtml, 'utf8');
+  console.log(`  wrote galleries/index.htm (${(indexHtml.length / 1024).toFixed(0)} KB)`);
+}
+
+console.log(`\n  http://localhost:8099/galleries/`);

@@ -29,7 +29,6 @@
 
 	--dc-gallery-max: 1300px;
 	--dc-prose-max: 700px;
-	--dc-feature-max: 640px;
 }
 
 /* --------------------------------------------------------------------------
@@ -511,102 +510,6 @@ hr {
 .style4 {
 	font-size: small;
 	text-decoration: underline;
-}
-
-/* --------------------------------------------------------------------------
-   Home page feature rotator
-
-   Previously this was three absolutely-positioned layers centred with
-   `left:50%; margin-left:-320px`, which hard-coded a 640px stage and pushed
-   the caption to a fixed `top:380px`. It is now a normal centred block with
-   the caption overlaid on the bottom of the photo, so it scales on a phone.
-   -------------------------------------------------------------------------- */
-
-.mainStage {
-	margin-top: 25px;
-	background: url("../images/2015-background.jpg") repeat;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.mainImages {
-	position: relative;
-	width: 100%;
-	max-width: var(--dc-feature-max);
-	margin: 0 auto;
-	/* Flex items default to min-width:auto, which refuses to shrink below the
-	   photo's intrinsic 640px and forces the whole page to scroll sideways on
-	   a phone. */
-	min-width: 0;
-	/* Revealed by js/homerotate.js once the first photo has been assigned. */
-	visibility: hidden;
-}
-
-.mainImageLink {
-	display: block;
-	position: relative;
-	line-height: 0;
-}
-
-.mainImageLink img {
-	display: block;
-	width: 100%;
-	height: auto;
-	border: 0;
-}
-
-.mainTextOuter {
-	position: absolute;
-	right: 0;
-	bottom: 0;
-	left: 0;
-	text-align: right;
-	line-height: normal;
-}
-
-.mainTextColor {
-	display: inline-block;
-	max-width: 100%;
-	background-color: var(--dc-panel);
-	min-height: 40px;
-	padding: 6px 10px 6px 20px;
-	text-align: right;
-	color: var(--dc-fg);
-}
-
-.mainTextArtist {
-	font-weight: bold;
-}
-
-.mainTextDate {
-	font-size: 10px;
-}
-
-.circlesContainer {
-	padding-top: 40px;
-	text-align: center;
-	position: relative;
-	margin: 0 auto;
-}
-
-/* Unprefixed border-radius: the -webkit-/-moz- variants were required only by
-   browsers released before 2011. The dots are now <button> elements rather
-   than <div onclick>, so they are keyboard reachable. */
-.circle {
-	width: 12px;
-	height: 12px;
-	padding: 0;
-	border: 0;
-	border-radius: 6px;
-	background: #646464;
-	display: inline-block;
-	cursor: pointer;
-	margin: 0 2px;
-}
-
-.circleSelected {
-	background: #b4b4b4;
 }
 
 /* --------------------------------------------------------------------------
