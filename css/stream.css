@@ -934,10 +934,15 @@ a.yearStep:focus-visible {
 	top: 17px;
 	left: 0;
 	right: 0;
-	/* One tile tall. The tile is 1707x425 and repeats sideways only, so the
-	   band is always exactly the artwork rather than a seam. */
-	height: 425px;
+	/* One tile tall, until the photograph is smaller than that. Below roughly
+	   660px the frame shrinks to fit the window, and a fixed band would hang
+	   past the bottom of the picture and the dots below it; the second term is
+	   the frame's own height, 426/640 of its width. background-size scales the
+	   tile to match, which keeps the fade to background that is painted into
+	   its top and bottom edges. */
+	height: min(425px, calc((100vw - 24px) * 0.6656));
 	background: url("../images/2015-background.jpg") repeat-x center top;
+	background-size: auto 100%;
 	pointer-events: none;
 }
 
