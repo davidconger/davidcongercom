@@ -4,7 +4,6 @@ Maintenance scripts for davidconger.com. These are **development tools only** �
 they are not part of the published site and do not need to be uploaded to Azure.
 
 ## check-links.js
-
 Walks every `.htm`/`.html` page, resolves every local `href` / `src` /
 `data-original` reference against the filesystem, and reports what is missing.
 
@@ -19,6 +18,11 @@ closes that gap. Run it before and after any bulk change and compare the counts.
 References are resolved the way a browser does (RFC 3986 §5.2.4) — excess `../`
 segments are discarded at the site root rather than escaping above it, which
 matters because many legacy pages use one `../` too many.
+
+`--max-broken N` turns it into a CI gate, exiting non-zero above the ceiling.
+Zero broken references is not a reachable bar here — about 4,068 are
+long-standing breakage inside archived trees — so the gate asserts a change has
+not made things worse, which is the failure mode of a bad bulk edit.
 
 ## analyze-links.js
 

@@ -1,0 +1,74 @@
+# Deploys the site's code and markup to Azure App Service over FTP.
+#
+# Only what git tracks is shipped, which is the ~48 MB of HTML, CSS, JS and
+# icons. The 5.3 GB of photographs are deliberately not in the repository and
+# stay untouched on the server, so this workflow can never re-upload or delete
+# them.
+#
+# It is manual on purpose. Deploys have never been automated on this site, and
+# the first few should be watched. Run it with dry-run left on to see exactly
+# what would change before letting it write anything.
+#
+# Required repository secrets, taken from the App Service publish profile
+# (Portal -> davidconger -> Overview -> Download publish profile, "FTP" entry):
+#
+#   AZURE_FTP_SERVER    e.g. ftps://waws-prod-ch1-011.ftp.azurewebsites.windows.net/site/wwwroot/
+#   AZURE_FTP_USERNAME  e.g. davidconger\$davidconger
+#   AZURE_FTP_PASSWORD
+
+name: Deploy site
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'List changes without uploading anything'
+        type: boolean
+        default: true
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      # Cheap guards. A malformed web.config takes the whole site down with a
+      # 500, and a sitemap that has lost URLs quietly drops pages out of search.
+      - name: Validate XML
+        run: xmllint --noout web.config sitemap.xml
+
+      - name: Validate sitemap coverage
+        run: >
+          node -e "const s=require('fs').readFileSync('sitemap.xml','utf8');
+          const ns=s.includes('xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"');
+          const n=(s.match(/<loc>/g)||[]).length;
+          if(!ns) throw new Error('wrong sitemap namespace');
+          if(n<8000) throw new Error('sitemap only lists '+n+' URLs');
+          console.log('sitemap.xml OK, '+n+' URLs');"
+
+      - name: Check for broken references
+        run: node tools/check-links.js . --max-broken 4100
+
+      - name: Deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.AZURE_FTP_SERVER }}
+          username: ${{ secrets.AZURE_FTP_USERNAME }}
+          password: ${{ secrets.AZURE_FTP_PASSWORD }}
+          protocol: ftps
+          dry-run: ${{ inputs.dry-run }}
+          # Photographs live only on the server. Excluding them here means the
+          # sync never sees them as "deleted locally".
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/*.jpg
+            **/*.jpeg
+            **/node_modules/**
+            **/tools/**
+            **/*.md

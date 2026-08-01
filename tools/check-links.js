@@ -11,7 +11,11 @@
  * compare the summary numbers.
  *
  * Usage:
- *   node check-links.js <siteRoot> [--json <outFile>] [--limit N]
+ *   node check-links.js <siteRoot> [--json <outFile>] [--limit N] [--max-broken N]
+ *
+ * --max-broken makes this usable as a CI gate. The site carries a large number
+ * of long-standing broken references inside archived trees, so "zero broken" is
+ * not a reachable bar; what matters is that a bulk edit has not made it worse.
  */
 
 const fs = require('fs');
@@ -22,11 +26,13 @@ const jsonIdx = args.indexOf('--json');
 const jsonOut = jsonIdx > -1 ? args[jsonIdx + 1] : null;
 const limitIdx = args.indexOf('--limit');
 const reportLimit = limitIdx > -1 ? parseInt(args[limitIdx + 1], 10) : 40;
+const maxIdx = args.indexOf('--max-broken');
+const maxBroken = maxIdx > -1 ? parseInt(args[maxIdx + 1], 10) : null;
 
 /** The first argument that is neither a flag nor a flag's value is the site
  *  root. Picking it positionally used to swallow `--json`, silently scanning a
  *  directory that did not exist and reporting a clean bill of health. */
-const flagValues = new Set([jsonIdx, limitIdx].filter((i) => i > -1).map((i) => i + 1));
+const flagValues = new Set([jsonIdx, limitIdx, maxIdx].filter((i) => i > -1).map((i) => i + 1));
 const positional = args.filter((a, i) => !a.startsWith('--') && !flagValues.has(i));
 const siteRoot = path.resolve(positional[0] || '.');
 
@@ -178,4 +184,15 @@ if (jsonOut) {
     )
   );
   console.log(`\nJSON report written to ${jsonOut}`);
+}
+
+if (maxBroken !== null && Number.isFinite(maxBroken)) {
+  if (broken.length > maxBroken) {
+    console.error(
+      `\nFAIL: ${broken.length} broken references, above the agreed ceiling of ${maxBroken}.\n` +
+      'Something in the last change broke references that used to resolve.'
+    );
+    process.exit(1);
+  }
+  console.log(`\nOK: ${broken.length} broken references, at or below the ceiling of ${maxBroken}.`);
 }
