@@ -23,6 +23,7 @@ const dryRun = process.argv.includes('--dry-run');
 /** Trees that are superseded, internal, or tooling rather than published pages. */
 const SKIP_DIRS = new Set([
   '1cnf', '1pvt', '.git', 'node_modules', 'tools',
+  '_proto',       // design prototypes, never deployed
   'you_old',      // superseded copy of the /you/ section
   'old',          // galleries/old/ and friends
   '_data',        // the retired generator's source data

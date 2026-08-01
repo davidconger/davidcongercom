@@ -153,12 +153,39 @@ async function main() {
   console.log(`\n=== ${url} @ ${width}px ===`);
   console.log(result.value);
 
+  // --eval runs a snippet in the page before the screenshot, so an interactive
+  // state -- a rotator advanced, a menu opened -- can be captured rather than
+  // only the state the page loads in. The value may be inline JavaScript or a
+  // path to a .js file; prefer the file, because PowerShell strips embedded
+  // double quotes when passing arguments to a native command and inline
+  // snippets arrive silently corrupted.
+  const evalIdx = process.argv.indexOf('--eval');
+  if (evalIdx > -1 && process.argv[evalIdx + 1]) {
+    const arg = process.argv[evalIdx + 1];
+    const expression = /\.js$/i.test(arg) && fs.existsSync(arg) ? fs.readFileSync(arg, 'utf8') : arg;
+    const r = await send('Runtime.evaluate', { expression, awaitPromise: true });
+    if (r.exceptionDetails) {
+      console.log('\n--eval threw: ' + (r.exceptionDetails.exception
+        ? r.exceptionDetails.exception.description
+        : r.exceptionDetails.text));
+    }
+    await new Promise((res) => setTimeout(res, 700));
+  }
+
   const shotIdx = process.argv.indexOf('--shot');
   if (shotIdx > -1 && process.argv[shotIdx + 1]) {
     // Captured through CDP rather than --screenshot, because --window-size does
     // not reliably set the layout viewport in headless Edge and produces
     // misleading clipped images.
-    const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+    //
+    // --clip limits the capture to the viewport instead of the whole document,
+    // which is what you want on a long lazy-loaded page: the images below the
+    // fold have not been fetched, so a full-page capture is mostly empty boxes.
+    const clip = process.argv.includes('--clip');
+    const shot = await send('Page.captureScreenshot',
+      clip
+        ? { format: 'png', clip: { x: 0, y: 0, width, height, scale: 1 } }
+        : { format: 'png', captureBeyondViewport: true });
     fs.writeFileSync(process.argv[shotIdx + 1], Buffer.from(shot.data, 'base64'));
     console.log('\nScreenshot: ' + process.argv[shotIdx + 1]);
   }

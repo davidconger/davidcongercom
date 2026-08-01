@@ -82,6 +82,79 @@ Screenshots are captured through the protocol rather than Edge's `--screenshot`
 flag, because `--window-size` does not reliably set the layout viewport in
 headless Edge and produces misleadingly clipped images.
 
+Two flags help with long or interactive pages:
+
+| Flag | Effect |
+|---|---|
+| `--clip` | Capture the viewport only, instead of the full document. Full-page capture on a long lazy-loading page mostly yields empty boxes below the fold. |
+| `--eval <js-or-path>` | Run a snippet in the page, wait 700ms, then capture — so an advanced rotator or an opened menu can be photographed. |
+
+Pass `--eval` a **path to a `.js` file** rather than inline JavaScript.
+PowerShell strips embedded double quotes when passing arguments to a native
+command, so an inline snippet arrives silently corrupted and the screenshot looks
+like the flag was ignored.
+
+```bash
+node tools/layout-probe.js "http://localhost:8099/_proto/stream/2019/" 1440 1120 \
+  --shot out.png --clip --eval _proto/stream/advance-rotators.js
+```
+
+## build-stream.js
+
+Generates the **year stream** prototype in `_proto/stream/<year>/index.htm` — the
+proposed replacement for the catalog landing page. See `_proto/README.md` for the
+design rationale; this section covers the mechanics.
+
+```bash
+node tools/build-stream.js --year 2019                 # one year
+node tools/build-stream.js --year 2018 --year 2019     # repeatable
+node tools/build-stream.js --year 2019 --photos 4 --limit 6
+```
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--year <YYYY>` | — | Year to build. Repeat for several. |
+| `--photos <n>` | 3 | Maximum frames per show in the rotator. |
+| `--limit <n>` | all | Build only the first *n* shows — useful when iterating on the CSS. |
+
+The event list comes from the `galleries/<year>/<month>/<slug>/` folders, with
+`catalog/<year>/_data/*.txt` supplying descriptions where it has them. This is
+the same rule `build-catalog.js` follows and for the same reason: **`_data` is
+incomplete and must never be trusted as the event list.**
+
+Only landscape frames are used. `jpegSize()` reads dimensions straight from the
+JPEG SOF marker, so no image library is needed.
+
+Each show's caption colours are sampled by `sample-overlay-colors.ps1` and
+written into the page as `--cap-top`, `--cap-bot` and `--cap-fg` custom
+properties. `captionFill()` desaturates the sample 35% toward its channel mean —
+otherwise one saturated stage light produces a violently coloured caption — then
+pushes it toward black or white depending on luminance, flipping the text colour
+to match.
+
+## sample-overlay-colors.ps1
+
+Build-time image colour sampler used by `build-stream.js`. Reads a JSON job file
+of image paths and returns, for each, the average colour of the **top and bottom
+halves** of a crop region, plus its luminance and dimensions.
+
+```powershell
+powershell -File tools/sample-overlay-colors.ps1 `
+  -JobFile jobs.json -OutFile out.json -CropTop 0.82 -CropLeft 0.60
+```
+
+`-CropTop` / `-CropLeft` are fractions of the image, and should match the caption
+panel's actual footprint. Sampling wider than the panel covers pulls the tint
+toward pixels the viewer can still see, which makes the join between panel and
+photograph visible.
+
+It draws the crop into a **16x4 bitmap** with `HighQualityBicubic` and reads
+those 64 pixels, letting the resampler do the averaging. Walking the real pixels
+of thousands of images is far slower for an identical result.
+
+Sampling happens at build time deliberately: no canvas, no CORS, and no flash of
+grey before the tint applies.
+
 ## extract-featured.js
 
 One-shot migration that pulled the hard-coded `imageArray` out of the old

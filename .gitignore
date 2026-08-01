@@ -16,3 +16,6 @@ Thumbs.db
 desktop.ini
 *.tmp
 ~$*
+
+# scratch commit-message file used by the tooling
+.commitmsg

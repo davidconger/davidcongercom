@@ -1,0 +1,225 @@
+/* --------------------------------------------------------------------------
+   PROTOTYPE -- year stream
+
+   A concept for replacing the thumbnail catalog as the destination for
+   "Concert & Event Photos": a scrollable year of full 640px frames rather than
+   a grid of 240x160 crops.
+
+   Layered on top of css/site.css, which supplies the palette and the page
+   chrome. Nothing here overrides an existing rule.
+   -------------------------------------------------------------------------- */
+
+.stream {
+	/* Two 640px frames plus the gutter, and no wider: the photographs are
+	   640px originals, so a wider grid would only upscale them. */
+	max-width: 1348px;
+	margin: 0 auto;
+	padding: 0 24px 10px;
+}
+
+.streamHead {
+	text-align: center;
+	padding: 26px 0 22px;
+	line-height: 1.7;
+}
+
+.streamYear {
+	font-size: 19px;
+	letter-spacing: 3px;
+	color: var(--dc-fg);
+}
+
+.streamNav {
+	font-size: 12px;
+	letter-spacing: 1px;
+	color: #949494;
+}
+
+.streamFoot {
+	padding-top: 34px;
+}
+
+.showGrid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 46px 28px;
+}
+
+@media (max-width: 980px) {
+	.showGrid {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 38px 0;
+		max-width: 640px;
+		margin: 0 auto;
+	}
+}
+
+/* On a phone the frame is around 370px wide rather than 640, but the caption
+   was still being set at desktop sizes, so it ate a quarter of the photograph.
+   The type scales with the frame; the panel's job of covering the watermark
+   does not change, so min-width stays. */
+@media (max-width: 560px) {
+	.stream {
+		padding: 0 16px 10px;
+	}
+
+	.showCaption {
+		padding: 5px 9px 6px 16px;
+		font-size: 11px;
+	}
+
+	.showArtist {
+		font-size: 12px;
+	}
+
+	.showDate {
+		font-size: 9px;
+	}
+}
+
+.show {
+	min-width: 0;
+}
+
+/* The frame carries the shadow rather than the image, so the crossfade below
+   does not fade the shadow in and out with it. The two-part shadow is doing
+   what the tiled photo wall does on the home page: a tight contact shadow to
+   seat the photograph, and a wide soft one to lift it off the background. */
+.showFrame {
+	position: relative;
+	line-height: 0;
+	box-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.55),
+		0 10px 26px rgba(0, 0, 0, 0.45);
+}
+
+.showSlide {
+	display: block;
+	position: relative;
+	text-decoration: none;
+	opacity: 0;
+	transition: opacity 380ms ease;
+}
+
+/* The first slide stays in flow so it sets the frame's height; the rest are
+   stacked on top of it. Every slide in a show is 640x426, so nothing shifts
+   when the rotator advances. */
+.showSlide + .showSlide {
+	position: absolute;
+	inset: 0;
+}
+
+.showSlide.is-active {
+	opacity: 1;
+	z-index: 1;
+}
+
+.showSlide img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Caption
+
+   Same anatomy as the home page rotator -- bottom right, artist in bold, date
+   small underneath -- but the fill is sampled from the photograph behind it at
+   build time by tools/sample-overlay-colors.ps1 rather than being a flat grey.
+
+   The caption's real job is covering the burned-in davidconger.com watermark,
+   so it has to be close to opaque; tinting it is what stops that opacity
+   reading as a grey sticker slapped over the frame.
+   -------------------------------------------------------------------------- */
+
+.showCaption {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	/* The burned-in davidconger.com wordmark occupies the right 27% of the
+	   frame and the bottom 9% of it. A caption sized purely to its text left
+	   the wordmark poking out beside short artist names, so the panel has a
+	   floor wide enough to cover it whatever the text does. */
+	min-width: 36%;
+	max-width: 92%;
+	padding: 7px 12px 8px 22px;
+	text-align: right;
+	line-height: 1.35;
+	background-image: linear-gradient(180deg, var(--cap-top, rgba(42, 42, 42, 0.78)) 0%, var(--cap-bot, rgba(42, 42, 42, 0.99)) 58%);
+	color: var(--cap-fg, #ffffff);
+	font-size: 12px;
+	/* Photographs are noisy, and a tinted panel can land within a few percent
+	   of the pixels beside it. A hairline of light along the top edge keeps
+	   the panel legible without drawing a border. */
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+.showArtist {
+	display: block;
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.showVenue {
+	display: block;
+	opacity: 0.92;
+}
+
+.showDate {
+	display: block;
+	font-size: 10px;
+	letter-spacing: 0.5px;
+	opacity: 0.78;
+}
+
+/* --------------------------------------------------------------------------
+   Rotator
+
+   Deliberately below the photograph and deliberately small. Controls on top of
+   the image would compete with the caption and cover more of the frame, and
+   the whole point of this layout is that the photograph is the content.
+   -------------------------------------------------------------------------- */
+
+.showDots {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 11px 2px 0 0;
+	line-height: 0;
+}
+
+.showDots button {
+	width: 7px;
+	height: 7px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: #4c4c4c;
+	cursor: pointer;
+	transition: background 180ms ease, transform 180ms ease;
+}
+
+.showDots button:hover {
+	background: #0066ff;
+}
+
+.showDots button[aria-selected="true"] {
+	background: #c9c9c9;
+	transform: scale(1.18);
+}
+
+.showDots button:focus-visible {
+	outline: 2px solid #0066ff;
+	outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.showSlide,
+	.showDots button {
+		transition: none;
+	}
+}
