@@ -20,8 +20,10 @@
 	margin: 0 auto;
 }
 
+/* The year sits close above the first row, so it reads as the head of the
+   stream rather than as a separate band of chrome. */
 .stream {
-	padding: 0 24px 10px;
+	padding: 17px 24px 10px;
 }
 
 .streamBar {
@@ -37,28 +39,40 @@
    scrolling back up for, and on a year of eighty shows that is a long way
    back.
 
-   Both are translucent with a blur behind them, so photographs visibly pass
-   underneath rather than disappearing at a hard edge -- the point being that
-   the content is continuous and the chrome floats above it.
+   Neither band is allowed to read as a darker stripe across the page. The
+   utility bar is painted in the page's own colour, so at rest it is simply
+   invisible and the masthead disappears cleanly behind it on the way up. Once
+   the chrome is carrying content over photographs it goes translucent -- still
+   the page colour, just thinned, with a blur behind it -- so the pictures
+   visibly pass underneath rather than stopping at a hard edge.
    -------------------------------------------------------------------------- */
 
 :root {
 	--dc-topbar-h: 52px;
 }
 
+/* The utility bar starts below the top of the window, near the masthead it
+   belongs to, and travels up as the page scrolls until it pins. It carries no
+   fill until it collapses: an opaque bar would swallow the masthead 50px
+   before the masthead reached the top of the window, and the bar's middle is
+   empty until the collapsed name arrives there anyway. */
+body {
+	padding-top: 30px;
+}
+
 .streamTopBar {
 	position: sticky;
 	top: 0;
 	z-index: 40;
-	background: rgba(26, 26, 26, 0.72);
-	backdrop-filter: blur(16px) saturate(140%);
-	-webkit-backdrop-filter: blur(16px) saturate(140%);
+	background-color: transparent;
 	border-bottom: 1px solid rgba(255, 255, 255, 0);
 	transition: border-color 240ms ease, background-color 240ms ease;
 }
 
 .streamTopBar.is-collapsed {
-	background: rgba(24, 24, 24, 0.82);
+	background-color: rgba(42, 42, 42, 0.78);
+	backdrop-filter: blur(16px) saturate(140%);
+	-webkit-backdrop-filter: blur(16px) saturate(140%);
 	border-bottom-color: rgba(255, 255, 255, 0.07);
 }
 
@@ -73,13 +87,15 @@
 /* The masthead in one line. It stays out of the bar until the full masthead
    has scrolled past, at which point it takes over the identity so the bar is
    never just two anonymous controls. */
+/* Matched to the year label, so the collapsed bar reads at the same weight as
+   the control beneath it rather than as a caption. */
 .brandCompact {
 	flex: 1 1 auto;
 	min-width: 0;
 	text-align: center;
 	font-family: var(--dc-font-display);
-	font-size: 13px;
-	letter-spacing: 1.6px;
+	font-size: 19px;
+	letter-spacing: 2.2px;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -120,7 +136,16 @@
    -------------------------------------------------------------------------- */
 
 .streamHeader {
-	padding-top: 54px;
+	padding-top: 11px;
+	padding-bottom: 17px;
+	transition: opacity 200ms ease;
+}
+
+/* The compact name and the full masthead are the same thing in two sizes, so
+   only one of them is ever on screen: as the bar takes the name over, what is
+   left of the masthead behind it clears out rather than doubling up. */
+.streamTopBar.is-collapsed ~ .streamHeader {
+	opacity: 0;
 }
 
 .streamHeader .headerTextPre,
@@ -147,16 +172,19 @@
 
 .streamFooter {
 	color: #8a8a8a;
+	letter-spacing: 0.9px;
 	padding-top: 44px;
 }
 
 /* --------------------------------------------------------------------------
-   Social icons
+   Home and social icons
 
-   Was five PNGs on coloured tiles. Now four inline SVGs -- Instagram, X,
-   Facebook and a Fluent mail glyph -- drawn in currentColor so they sit
-   quietly in the header and take their brand colour only on hover. Flickr is
-   gone.
+   Was five PNGs on coloured tiles, plus a "Home" text link that matched none
+   of them. Now one set: a Fluent home glyph on the left and Instagram, X,
+   Facebook and mail on the right, all inline SVG drawn in currentColor, all
+   the same resting grey. They sit quietly in the bar and only declare
+   themselves -- brand colour, or a filled counterpart of the same glyph -- on
+   hover.
    -------------------------------------------------------------------------- */
 
 .streamSocial {
@@ -164,6 +192,10 @@
 	align-items: center;
 	justify-content: flex-end;
 	gap: 16px;
+}
+
+.streamHome {
+	justify-content: flex-start;
 }
 
 .streamSocial .socialLink {
@@ -187,7 +219,9 @@
 
 /* The X mark is black, which is invisible here, so it goes to full white. */
 .streamSocial .socialX:hover,
-.streamSocial .socialX:focus-visible {
+.streamSocial .socialX:focus-visible,
+.streamSocial .socialHome:hover,
+.streamSocial .socialHome:focus-visible {
 	color: #ffffff;
 }
 
@@ -207,19 +241,20 @@
 	border-radius: 3px;
 }
 
-/* The mail glyph has a regular and a filled state; the brand marks are solid
-   shapes already, so for them the colour shift is the whole tell. */
-.streamSocial .socialMail .iconFilled {
+/* Home and mail each ship a regular and a filled cut of the same glyph, and
+   swap between them on hover; the brand marks are solid shapes already, so for
+   those the colour shift is the whole tell. */
+.streamSocial .socialLink .iconFilled {
 	display: none;
 }
 
-.streamSocial .socialMail:hover .iconRegular,
-.streamSocial .socialMail:focus-visible .iconRegular {
+.streamSocial .socialLink:hover .iconRegular,
+.streamSocial .socialLink:focus-visible .iconRegular {
 	display: none;
 }
 
-.streamSocial .socialMail:hover .iconFilled,
-.streamSocial .socialMail:focus-visible .iconFilled {
+.streamSocial .socialLink:hover .iconFilled,
+.streamSocial .socialLink:focus-visible .iconFilled {
 	display: inline;
 }
 
@@ -235,35 +270,36 @@
    scroll depth: on a page this long "which year am I in" is a real question.
    -------------------------------------------------------------------------- */
 
-.streamTitle {
-	text-align: center;
-	padding: 24px 0 4px;
-}
+/* --------------------------------------------------------------------------
+   The year
 
-.streamTitleText {
-	display: block;
-	font-family: var(--dc-font-display);
-	font-size: 17px;
-	font-weight: 600;
-	letter-spacing: 3px;
-	color: var(--dc-fg, #f2f2f2);
-}
+   Was four stacked lines -- a section title, "View: Festivals | By Date", the
+   year, then the adjacent years spelled out as links. That is more furniture
+   than a page of photographs needs, and the title said nothing the photographs
+   were not already saying. What is left states the year and offers a
+   direction.
+
+   It then pins below the utility bar, so it stays answerable at any scroll
+   depth: on a page this long "which year am I in" is a real question.
+   -------------------------------------------------------------------------- */
 
 .yearBar {
 	position: sticky;
 	top: var(--dc-topbar-h);
 	z-index: 30;
-	padding: 12px 0;
-	background: rgba(26, 26, 26, 0);
-	backdrop-filter: blur(0px);
-	-webkit-backdrop-filter: blur(0px);
-	transition: background-color 240ms ease, box-shadow 240ms ease;
+	padding: 6px 0;
+	background-color: rgba(42, 42, 42, 0);
+	transition: background-color 240ms ease, box-shadow 240ms ease, padding 240ms ease;
 }
 
 /* Only once it is actually pinned does it need to separate itself from the
-   photographs passing beneath. Before that it is just a line on the page. */
+   photographs passing beneath. Before that it is just a line on the page.
+   Pinned, it also steps down a size: it has stopped being the thing you are
+   looking at and become a marker, and the height it gives back goes to the
+   photographs. */
 .yearBar.is-stuck {
-	background: rgba(26, 26, 26, 0.72);
+	padding: 6px 0;
+	background-color: rgba(42, 42, 42, 0.72);
 	backdrop-filter: blur(16px) saturate(140%);
 	-webkit-backdrop-filter: blur(16px) saturate(140%);
 	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
@@ -281,6 +317,12 @@
 	font-size: 19px;
 	letter-spacing: 3px;
 	color: #a6a6a6;
+	transition: font-size 240ms ease, letter-spacing 240ms ease;
+}
+
+.yearBar.is-stuck .yearLabel {
+	font-size: 15px;
+	letter-spacing: 2.2px;
 }
 
 .yearStep {
@@ -294,6 +336,11 @@
 	line-height: 0;
 	text-decoration: none;
 	transition: color 180ms ease, background-color 180ms ease;
+}
+
+.yearBar.is-stuck .yearStep svg {
+	width: 15px;
+	height: 15px;
 }
 
 a.yearStep:hover,
@@ -338,7 +385,7 @@ a.yearStep:focus-visible {
    does not change, so min-width stays. */
 @media (max-width: 560px) {
 	.stream {
-		padding: 0 16px 10px;
+		padding: 14px 16px 10px;
 	}
 
 	.showCaption {
@@ -424,23 +471,31 @@ a.yearStep:focus-visible {
 	position: absolute;
 	right: 0;
 	bottom: 0;
-	/* The burned-in davidconger.com wordmark occupies the right 27% of the
-	   frame and the bottom 9% of it. A caption sized purely to its text left
-	   the wordmark poking out beside short artist names, so the panel has a
-	   floor wide enough to cover it whatever the text does. */
-	min-width: 36%;
+	display: block;
+	text-decoration: none;
+	/* The burned-in davidconger.com wordmark starts 73% of the way across the
+	   frame, so the panel needs to reach at least that far left whatever the
+	   text does -- 32% gives it that with a little margin for the measurement.
+	   It used to be 36%, which pushed the panel noticeably past the wordmark
+	   behind short names. */
+	min-width: 32%;
 	max-width: 92%;
 	padding: 7px 12px 8px 22px;
 	text-align: right;
 	line-height: 1.35;
-	/* The panel is deliberately lighter than it needs to be at the top and as
-	   opaque as it must be at the bottom. Measured on the frame, the wordmark
-	   starts about a third of the way down the panel, so that is where the
-	   ramp finishes -- everything above it can stay translucent and let the
-	   photograph read through. Below it there is no latitude at all: at 0.96
-	   the wordmark ghosts back into view, because a few percent of a white
-	   mark over a dark panel is still legible. */
-	background-image: linear-gradient(180deg, var(--cap-top, rgba(38, 38, 38, 0.45)) 0%, var(--cap-bot, rgba(30, 30, 30, 0.995)) 33%);
+	/* The panel is deliberately lighter than it needs to be where nothing is
+	   hiding behind it, and as opaque as it must be where the wordmark is. The
+	   wordmark sits in the panel's bottom-right, so the ramp runs from the
+	   opposite corner: the top-left stays translucent and lets the photograph
+	   read through, and the fill is solid well before it reaches the mark.
+
+	   The stop is 16% rather than something more generous because the panel
+	   shrinks to its floor behind short artist names, and on that narrow a
+	   panel the wordmark begins about 20% along the diagonal. Below that
+	   threshold there is no latitude at all: at 0.96 alpha the wordmark ghosts
+	   back into view, because a few percent of a white mark over a dark panel
+	   is still legible. */
+	background-image: linear-gradient(135deg, var(--cap-top, rgba(38, 38, 38, 0.45)) 0%, var(--cap-bot, rgba(30, 30, 30, 0.995)) 16%);
 	color: var(--cap-fg, rgba(255, 255, 255, 0.88));
 	font-size: 12px;
 	/* Photographs are noisy, and a tinted panel can land within a few percent
@@ -453,6 +508,43 @@ a.yearStep:focus-visible {
 	display: block;
 	font-weight: 600;
 	font-size: 14px;
+	text-decoration-line: underline;
+	text-decoration-color: transparent;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 3px;
+	transition: text-decoration-color 180ms ease;
+}
+
+/* Anywhere on the caption is the link, but the caption also has to keep
+   reading as a caption -- so the only sign it gives is an underline arriving
+   under the artist's name. The site-wide a:hover rule would otherwise turn the
+   whole panel blue and underline all three lines, and it outranks a single
+   class, so the caption states its own colour in every link state. */
+.showCaption,
+.showCaption:link,
+.showCaption:visited,
+.showCaption:hover,
+.showCaption:focus,
+.showCaption:active {
+	color: var(--cap-fg, rgba(255, 255, 255, 0.88));
+	text-decoration: none;
+}
+
+.showCaption:hover .showArtist,
+.showCaption:focus-visible .showArtist {
+	text-decoration-color: currentColor;
+}
+
+.showCaption:focus-visible {
+	outline: 2px solid #0066ff;
+	outline-offset: 2px;
+}
+
+/* The frame is the rotator's own control: clicking a photograph brings up the
+   next one. Shows with a single frame have nothing to advance to, so they get
+   no pointer. */
+.has-rotator .showFrame {
+	cursor: pointer;
 }
 
 .showVenue {

@@ -6,8 +6,8 @@
    listeners.
 
    The markup is complete and correct with this file absent -- the first frame
-   is already the active one and every slide is a link to the gallery -- so the
-   rotator is an enhancement, not a dependency.
+   is already the active one and every caption is a link to the gallery -- so
+   the rotator is an enhancement, not a dependency.
    -------------------------------------------------------------------------- */
 (function () {
 	'use strict';
@@ -21,23 +21,48 @@
 			// Only the visible frame should be reachable by keyboard or read
 			// out, otherwise every show becomes three or four stops in the tab
 			// order for one destination.
+			var link = slides[i].querySelector('.showCaption');
 			if (on) {
-				slides[i].removeAttribute('tabindex');
 				slides[i].removeAttribute('aria-hidden');
+				if (link) link.removeAttribute('tabindex');
 			} else {
-				slides[i].setAttribute('tabindex', '-1');
 				slides[i].setAttribute('aria-hidden', 'true');
+				if (link) link.setAttribute('tabindex', '-1');
 			}
 			if (dots[i]) dots[i].setAttribute('aria-selected', String(on));
 		}
 	}
 
+	function advanceBy(show, step) {
+		var slides = show.querySelectorAll('.showSlide');
+		if (slides.length < 2) return;
+		var current = 0;
+		for (var i = 0; i < slides.length; i++) {
+			if (slides[i].classList.contains('is-active')) current = i;
+		}
+		select(show, (current + step + slides.length) % slides.length);
+	}
+
 	document.addEventListener('click', function (e) {
-		var dot = e.target.closest ? e.target.closest('.showDots button') : null;
-		if (!dot) return;
-		var show = dot.closest('.show');
+		if (!e.target.closest) return;
+
+		var dot = e.target.closest('.showDots button');
+		if (dot) {
+			var dotShow = dot.closest('.show');
+			if (!dotShow) return;
+			select(dotShow, Number(dot.getAttribute('data-index')) || 0);
+			hold(dotShow);
+			return;
+		}
+
+		// Clicking the photograph shows the next photograph. The caption is
+		// the link out to the gallery, so anything inside it is left alone.
+		if (e.target.closest('.showCaption')) return;
+		var frame = e.target.closest('.showFrame');
+		if (!frame) return;
+		var show = frame.closest('.show');
 		if (!show) return;
-		select(show, Number(dot.getAttribute('data-index')) || 0);
+		advanceBy(show, 1);
 		hold(show);
 	});
 
@@ -78,16 +103,6 @@
 		held.set(show, Date.now() + HOLD_MS);
 	}
 
-	function advance(show) {
-		var dots = show.querySelectorAll('.showDots button');
-		if (dots.length < 2) return;
-		var current = 0;
-		for (var i = 0; i < dots.length; i++) {
-			if (dots[i].getAttribute('aria-selected') === 'true') { current = i; break; }
-		}
-		select(show, (current + 1) % dots.length);
-	}
-
 	function eligible(show) {
 		if (held.get(show) > Date.now()) return false;
 		if (show.matches(':hover')) return false;
@@ -106,7 +121,7 @@
 			if (others.length) pool = others;
 		}
 		lastPicked = pool[Math.floor(Math.random() * pool.length)];
-		advance(lastPicked);
+		advanceBy(lastPicked, 1);
 	}
 
 	function start() {
@@ -148,11 +163,9 @@
 	   without listening to scroll.
 	   ---------------------------------------------------------------------- */
 
-	function watchStick(target, trigger, className) {
+	function watchStick(target, trigger, className, offset) {
 		if (!target || !trigger) return;
 		if (!window.IntersectionObserver) return;
-		var bar = document.querySelector('.streamTopBar');
-		var offset = bar ? bar.offsetHeight : 52;
 		new IntersectionObserver(function (entries) {
 			target.classList.toggle(className, !entries[0].isIntersecting);
 		}, { rootMargin: '-' + offset + 'px 0px 0px 0px', threshold: 0 }).observe(trigger);
@@ -161,12 +174,17 @@
 	var topBar = document.querySelector('.streamTopBar');
 	var masthead = document.querySelector('.streamHeader');
 	var yearBar = document.querySelector('.yearBar');
+	var barHeight = topBar ? topBar.offsetHeight : 52;
 
-	// The bar collapses once the masthead has gone by, not before: until then
-	// the full masthead is on screen and repeating it in the bar is noise.
-	watchStick(topBar, masthead, 'is-collapsed');
+	// The bar carries no fill until it collapses, so the masthead scrolls all
+	// the way to the top of the window rather than vanishing 50px early behind
+	// it. The handover happens when the name itself starts to leave: the line
+	// above it is what gets watched, because that line's bottom edge is the
+	// name's top edge. The inset matches the gap the icons keep from the top of
+	// the window, so the name reaches the same place they sit before it goes.
+	watchStick(topBar, document.querySelector('.headerTextPre'), 'is-collapsed', 30);
 
-	// The year bar's own top edge is where it would sit unpinned, so the title
-	// block above it is the thing to watch.
-	watchStick(yearBar, document.querySelector('.streamTitle'), 'is-stuck');
+	// The year pins as soon as it reaches the bar, which is the moment the
+	// masthead -- the last thing above it -- has passed the bar's full height.
+	watchStick(yearBar, masthead, 'is-stuck', barHeight);
 }());

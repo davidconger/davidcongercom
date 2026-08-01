@@ -11,11 +11,11 @@
  * The part that needs proving is the caption. Today it is a flat grey panel
  * whose real job is covering the burned-in davidconger.com watermark. Here it
  * is tinted to the photograph behind it: sample-overlay-colors.ps1 measures the
- * bottom-right of each frame at build time, and the result becomes a vertical
- * gradient -- light where the panel meets the photograph, opaque by the time it
- * reaches the watermark -- plus a text colour chosen for contrast. Doing it at
- * build time keeps the output static: no canvas, no CORS, no flash of grey
- * before the tint lands.
+ * bottom-right of each frame at build time, and the result becomes a diagonal
+ * gradient -- light in the corner where the panel meets the photograph, opaque
+ * by the time it reaches the watermark -- plus a text colour chosen for
+ * contrast. Doing it at build time keeps the output static: no canvas, no CORS,
+ * no flash of grey before the tint lands.
  *
  * Usage:
  *   node tools/build-stream.js --year 2019 --year 2020
@@ -294,35 +294,43 @@ function captionFill(rgb, lum, alpha) {
 function renderShow(show, colors) {
   const up = '../../../';
   const href = `${up}galleries/${show.rel}/`;
-  const caption = `
-					<span class="showCaption">
+  const many = show.frames.length > 1;
+
+  // The photograph advances the rotator and the caption is the way through to
+  // the gallery. Clicking a picture to see the next picture is the obvious
+  // reading of a stack of frames, and it leaves the caption -- which is already
+  // the only text on the frame -- to carry the navigation.
+  const caption = (i) => `
+					<a class="showCaption" href="${href}"${i === 0 ? '' : ' tabindex="-1"'}>
 						<span class="showArtist">${escapeHtml(show.artist)}</span>${show.venue ? `<span class="showVenue">${escapeHtml(show.venue)}</span>` : ''}
 						${show.date ? `<span class="showDate">${escapeHtml(show.date.text)}</span>` : ''}
-					</span>`;
+					</a>`;
   const slides = show.frames.map((f, i) => {
     const abs = path.join(ROOT, 'galleries', show.rel, f.file);
     const c = colors.get(abs);
     const lum = c ? c.lum : 0.2;
     const style = c
-      // The gradient runs top to bottom, not left to right, so it can carry an
-      // alpha ramp as well as a colour shift: light where the panel meets the
-      // photograph, opaque by the time it reaches the burned-in watermark along
-      // the bottom edge. A horizontal gradient looked better in isolation but
-      // had to be uniformly opaque to hide the wordmark, which made every
-      // caption read as a sticker laid on the frame.
+      // The ramp runs corner to corner, from the panel's top-left to its
+      // bottom-right, so it can carry an alpha shift as well as a colour one:
+      // light where the panel meets the photograph, opaque by the time it
+      // reaches the burned-in watermark in the bottom-right. A gradient that
+      // was uniform along one axis had to be uniformly opaque to hide the
+      // wordmark, which made every caption read as a sticker laid on the frame.
+      // --cap-top is the colour sampled from the upper half of the panel's
+      // footprint and --cap-bot from the lower half.
       ? `--cap-top:${captionFill(c.top, lum, 0.45)};--cap-bot:${captionFill(c.bottom, lum, 0.995)};--cap-fg:${lum <= 0.5 ? 'rgba(255,255,255,.88)' : 'rgba(17,17,17,.86)'}`
       : '';
-    return `				<a class="showSlide${i === 0 ? ' is-active' : ''}" href="${href}" style="${style}" ${i === 0 ? '' : 'tabindex="-1" aria-hidden="true"'}>
-					<img src="${up}galleries/${show.rel}/${f.file}" width="${f.width}" height="${f.height}" alt="${escapeHtml(show.artist)}" loading="lazy" decoding="async">${caption}
-				</a>`;
+    return `				<div class="showSlide${i === 0 ? ' is-active' : ''}" style="${style}"${i === 0 ? '' : ' aria-hidden="true"'}>
+					<img src="${up}galleries/${show.rel}/${f.file}" width="${f.width}" height="${f.height}" alt="${escapeHtml(show.artist)}" loading="lazy" decoding="async">${caption(i)}
+				</div>`;
   }).join('\n');
 
-  const dots = show.frames.length > 1 ? `
+  const dots = many ? `
 			<div class="showDots" role="tablist" aria-label="More frames from this show">
 ${show.frames.map((f, i) => `				<button type="button" role="tab" data-index="${i}" aria-selected="${i === 0}" aria-label="Frame ${i + 1} of ${show.frames.length}"></button>`).join('\n')}
 			</div>` : '';
 
-  return `		<li class="show">
+  return `		<li class="show${many ? ' has-rotator' : ''}">
 			<div class="showFrame">
 ${slides}
 			</div>${dots}
@@ -336,6 +344,11 @@ function renderYear(year, list, colors, available) {
 
   const CHEVRON_LEFT = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M15.5303 4.21967C15.8232 4.51256 15.8232 4.98744 15.5303 5.28033L8.81066 12L15.5303 18.7197C15.8232 19.0126 15.8232 19.4874 15.5303 19.7803C15.2374 20.0732 14.7626 20.0732 14.4697 19.7803L7.21967 12.5303C6.92678 12.2374 6.92678 11.7626 7.21967 11.4697L14.4697 4.21967C14.7626 3.92678 15.2374 3.92678 15.5303 4.21967Z"/></svg>';
   const CHEVRON_RIGHT = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8.46967 4.21967C8.17678 4.51256 8.17678 4.98744 8.46967 5.28033L15.1893 12L8.46967 18.7197C8.17678 19.0126 8.17678 19.4874 8.46967 19.7803C8.76256 20.0732 9.23744 20.0732 9.53033 19.7803L16.7803 12.5303C17.0732 12.2374 17.0732 11.7626 16.7803 11.4697L9.53033 4.21967C9.23744 3.92678 8.76256 3.92678 8.46967 4.21967Z"/></svg>';
+
+  // Fluent's home glyph, regular and filled, swapped on hover exactly as the
+  // mail icon is -- so the one navigation control on the page reads as part of
+  // the same set as the social links rather than as leftover text.
+  const HOME_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path class="iconRegular" fill="currentColor" d="M10.5495 2.53189C11.3874 1.82531 12.6126 1.82531 13.4505 2.5319L20.2005 8.224C20.7074 8.65152 21 9.2809 21 9.94406L21 19.2539C21 20.2204 20.2165 21.0039 19.25 21.0039H15.75C14.7835 21.0039 14 20.2204 14 19.2539L14 14.2468C14 14.1088 13.8881 13.9968 13.75 13.9968H10.25C10.1119 13.9968 9.99999 14.1088 9.99999 14.2468L9.99999 19.2539C9.99999 20.2204 9.2165 21.0039 8.25 21.0039H4.75C3.7835 21.0039 3 20.2204 3 19.2539V9.94406C3 9.2809 3.29255 8.65152 3.79952 8.224L10.5495 2.53189ZM12.4835 3.6786C12.2042 3.44307 11.7958 3.44307 11.5165 3.6786L4.76651 9.37071C4.59752 9.51321 4.5 9.72301 4.5 9.94406L4.5 19.2539C4.5 19.392 4.61193 19.5039 4.75 19.5039H8.25C8.38807 19.5039 8.49999 19.392 8.49999 19.2539L8.49999 14.2468C8.49999 13.2803 9.2835 12.4968 10.25 12.4968H13.75C14.7165 12.4968 15.5 13.2803 15.5 14.2468L15.5 19.2539C15.5 19.392 15.6119 19.5039 15.75 19.5039H19.25C19.3881 19.5039 19.5 19.392 19.5 19.2539L19.5 9.94406C19.5 9.72301 19.4025 9.51321 19.2335 9.37071L12.4835 3.6786Z"/><path class="iconFilled" fill="currentColor" d="M13.4508 2.53318C12.6128 1.82618 11.3872 1.82618 10.5492 2.53318L3.79916 8.22772C3.29241 8.65523 3 9.28447 3 9.94747V19.2526C3 20.2191 3.7835 21.0026 4.75 21.0026H7.75C8.7165 21.0026 9.5 20.2191 9.5 19.2526V15.25C9.5 14.5707 10.0418 14.018 10.7169 14.0004H13.2831C13.9582 14.018 14.5 14.5707 14.5 15.25V19.2526C14.5 20.2191 15.2835 21.0026 16.25 21.0026H19.25C20.2165 21.0026 21 20.2191 21 19.2526V9.94747C21 9.28447 20.7076 8.65523 20.2008 8.22772L13.4508 2.53318Z"/></svg>';
 
   // Arrows rather than a list of adjacent years: the control says which year
   // you are in and which way to go, and nothing else.
@@ -370,8 +383,8 @@ function renderYear(year, list, colors, available) {
 
 <div class="streamTopBar">
 	<div class="streamBar topBarInner">
-		<div class="headerNavText">
-			<a href="${up}index.htm">Home</a>
+		<div class="headerNavText streamSocial streamHome">
+			<a class="socialLink socialHome" href="${up}index.htm" aria-label="Home" title="Home">${HOME_ICON}</a>
 		</div>
 		<div class="brandCompact"><span class="brandCompactName">David Conger Photography</span> <span class="brandCompactPlace">Seattle, WA</span></div>
 		<div class="headerSocialLinks streamSocial">
@@ -395,10 +408,6 @@ function renderYear(year, list, colors, available) {
 	<div class="headerTextPre">the concert &amp; event photography of</div>
 	<div class="headerTextMain">David Conger</div>
 	<div class="headerTextSub"><a class="quietLink" href="mailto:david@davidconger.com">david@davidconger.com</a> | Seattle, WA</div>
-</div>
-
-<div class="streamTitle">
-	<span class="streamTitleText">Concert &amp; Event Photos</span>
 </div>
 
 <div class="yearBar">
