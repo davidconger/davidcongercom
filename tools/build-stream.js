@@ -177,20 +177,76 @@ function descriptionFromGallery(rel) {
   return m ? `${m[1]}, ${m[2]}, ${m[3]}. ${m[4]} ${Number(m[5])}, ${m[6]}` : null;
 }
 
+// The 2009 galleries are only folders of JPEGs: no per-gallery page, no
+// catalog data, and no og:description anywhere. What does exist is the flat
+// legacy page the slug used to point at, whose <title> reads
+// "Katy Perry at KISS-FM | Seattle | davidconger.com". That is enough for an
+// artist and a venue, which is what the caption is mostly made of. No date is
+// recorded anywhere for these shows, so they carry none rather than an invented
+// one -- the caption already handles a missing line, as 51 venue-less shows do.
+//
+// The city is deliberately dropped. Elsewhere the archive writes places as
+// "Seattle, WA", and the venue classifier leans on that trailing state to tell
+// a place from a venue; a bare "Seattle" gets mistaken for the venue and wins,
+// so Katy Perry ends up playing Seattle rather than KISS-FM. Adding the state
+// back would be a guess, and not every show here is in Washington.
+function descriptionFromLegacyPage(slug) {
+  const file = path.join(ROOT, 'galleries', `${slug}.htm`);
+  if (!fs.existsSync(file)) return null;
+  const t = /<title>([^<]*)<\/title>/i.exec(fs.readFileSync(file, 'utf8'));
+  if (!t) return null;
+
+  const parts = decodeHtml(t[1]).split('|').map((s) => s.trim())
+    .filter((s) => s && !/^davidconger\.com$/i.test(s));
+  if (!parts.length) return null;
+
+  const head = /^(.*?) at (?:the )?(.+)$/i.exec(parts[0]);
+  const artist = head ? head[1].trim() : parts[0];
+  const venue = head ? head[2].trim() : '';
+  if (!artist) return null;
+
+  return [artist, venue].filter(Boolean).join(', ');
+}
+
 function shows(year) {
   const byRel = new Map();
+
+  // The catalog data for 2010 and 2011 refers to each show by a flat legacy
+  // page -- "joenichols.htm" -- left over from before galleries were foldered
+  // by month. The frames themselves did get moved, so the show is really at
+  // galleries/2010/01/joenichols/; only the reference was never rewritten.
+  // Indexing the year's folders by slug lets those two years resolve, which is
+  // some 500 shows that would otherwise be dropped from the stream entirely.
+  const base = path.join(ROOT, 'galleries', year);
+  const bySlug = new Map();
+  if (fs.existsSync(base)) {
+    for (const m of fs.readdirSync(base, { withFileTypes: true })) {
+      if (!m.isDirectory()) continue;
+      for (const s of fs.readdirSync(path.join(base, m.name), { withFileTypes: true })) {
+        if (!s.isDirectory()) continue;
+        if (!bySlug.has(s.name)) bySlug.set(s.name, `${year}/${m.name}/${s.name}`);
+      }
+    }
+  }
+
+  const resolve = (raw) => {
+    const rel = raw.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/index\.html?$/i, '');
+    if (/^\d{4}\//.test(rel)) return rel;
+    const slug = rel.replace(/\.html?$/i, '').split('/').pop();
+    return bySlug.get(slug) || null;
+  };
+
   const dataDir = path.join(ROOT, 'catalog', year, '_data');
   if (fs.existsSync(dataDir)) {
     for (const f of fs.readdirSync(dataDir).filter((x) => /\.txt$/i.test(x)).sort()) {
       fs.readFileSync(path.join(dataDir, f), 'utf8').split(/\r?\n/).forEach((line, i) => {
         if (!line.trim()) return;
         const p = line.split(';').map((s) => s.trim());
-        const rel = (p[1] || '').replace(/\\/g, '/').replace(/\/index\.html?$/i, '');
+        const rel = resolve(p[1] || '');
         if (p[0] && rel) byRel.set(rel, { desc: p[0], order: `${f}:${String(i).padStart(5, '0')}` });
       });
     }
   }
-  const base = path.join(ROOT, 'galleries', year);
   if (fs.existsSync(base)) {
     for (const m of fs.readdirSync(base, { withFileTypes: true })) {
       if (!m.isDirectory()) continue;
@@ -198,7 +254,7 @@ function shows(year) {
         if (!s.isDirectory()) continue;
         const rel = `${year}/${m.name}/${s.name}`;
         if (byRel.has(rel)) continue;
-        const d = descriptionFromGallery(rel);
+        const d = descriptionFromGallery(rel) || descriptionFromLegacyPage(s.name);
         if (d) byRel.set(rel, { desc: d, order: `zzz:${rel}` });
       }
     }
@@ -207,7 +263,14 @@ function shows(year) {
   const out = [];
   for (const [rel, v] of byRel) {
     const dir = path.join(ROOT, 'galleries', rel);
-    if (!fs.existsSync(dir)) continue;
+    // The catalog data for the early years lists some shows as a flat legacy
+    // page -- "joenichols.htm" rather than "2009/07/joenichols" -- which exists
+    // but is a file, not a folder of frames. Those pre-date the current gallery
+    // layout and have no directory to read, so they are skipped rather than
+    // crashing the walk.
+    let stat = null;
+    try { stat = fs.statSync(dir); } catch { /* missing */ }
+    if (!stat || !stat.isDirectory()) continue;
     const files = fs.readdirSync(dir)
       .filter((f) => /\.jpe?g$/i.test(f))
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
