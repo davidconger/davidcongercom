@@ -200,6 +200,98 @@ node tools/serve.js . 8099          # in one shell
 powershell -File tools\probe-sweep.ps1
 ```
 
+## new-gallery.js
+
+Replaces the retired desktop application that used to generate the `/you/`
+meet-and-greet galleries. Takes a folder of full-size JPEGs plus event metadata
+and emits the exact existing URL shape, so nothing about the published structure
+changes:
+
+```
+you/<year>/<slug>/index.htm
+you/<year>/<slug>/thumbnail.jpg
+you/<year>/<slug>/gallery/<slug>-NN.htm
+you/<year>/<slug>/gallery/<slug>-NN.jpg      (1280px, ~250 KB)
+you/<year>/<slug>/gallery/<slug>-NN_sm.jpg   (240x160 thumbnail)
+```
+
+```bash
+node tools/new-gallery.js \
+  --source "D:\shoots\2026-04-02 Test Artist" \
+  --artist "Test Artist" \
+  --venue  "Snoqualmie Casino and Hotel" \
+  --date   2026-04-02 \
+  --courtesy "100.7 The Wolf" \
+  --dry-run
+```
+
+The slug follows the convention in use since 2019 — `<artist>-at-<venue>`, all
+non-alphanumerics stripped and lowercased — unless `--slug` overrides it. The new
+event is inserted at the top of `you/index.htm` automatically; `--no-listing`
+skips that. Markup comes from `tools/templates/`, which is now the authoritative
+source for `/you/` pages.
+
+Run with `--dry-run` first: it reports every file it would write without
+touching the disk.
+
+## resize-images.ps1
+
+Batch image resizer built on .NET `System.Drawing`, so it needs no npm packages
+and no ImageMagick install. Reads a JSON job array and honours the EXIF
+orientation tag, which the camera sets on portrait frames.
+
+```powershell
+powershell -File tools/resize-images.ps1 -JobFile jobs.json -Quality 82
+```
+
+Each job is `{ "src", "dst", "width", "height", "mode" }` where `mode` is `fit`
+(scale to fit, never upscaling) or `cover` (centre-crop to exactly fill).
+
+## fix-thumbnails.js
+
+One-off repair for `/you/` event thumbnails that were published at full size.
+`you/index.htm` declares `width="240" height="160"` but 28 of the 48
+`thumbnail.jpg` files were full 1280x854 exports, so the listing pulled 17.2 MB
+to paint a grid of postage stamps. Resizing them to the size they are actually
+displayed cut that to 1.35 MB with no URL, markup or layout change.
+
+```bash
+node tools/fix-thumbnails.js --dry-run
+```
+
+Safe to re-run: it only rewrites files that are still larger than 240x160.
+
+## lift-inline-styles.js
+
+Removes the `.yearHeader` / `.pageHeader` `<style>` block that was duplicated
+verbatim on 4,827 pages, after the same rules were added to `css/site.css`. It
+only deletes a block whose declarations exactly match what the stylesheet now
+provides; anything with extra rules is reported and left alone.
+
+Run without arguments for a census of every distinct inline `<style>` block on
+the site — useful for spotting further consolidation opportunities:
+
+```bash
+node tools/lift-inline-styles.js            # census + dry run
+node tools/lift-inline-styles.js --apply
+```
+
+## audit-style-classes.js
+
+Reports pages that use a generic Expression Web class (`style1`, `auto-style2`,
+…) without defining it locally. Those pages inherit whatever `site.css` happens
+to define, which matters because the same class name means different things on
+different pages. Used to bound the risk of consolidating those blocks.
+
+## refs-to.js
+
+Counts inbound references to a given filename across every page, to decide
+whether an orphaned-looking file is safe to delete.
+
+```bash
+node tools/refs-to.js old_index.htm previous.htm
+```
+
 ## serve.js
 
 Minimal static server for previewing the site locally, with IIS-like directory →
@@ -243,6 +335,7 @@ in 2013), two galleries with unescaped apostrophes in their paths
 | Phase 2 — CSS consolidation | 9,759 | 73,807 | 0 |
 | Phase 3 — JavaScript cleanup | 9,759 | 73,807 | 0 |
 | Phase 4/5 — markup modernization | 9,598 | 4,072 | **0** |
+| Phase 6 — generator + CSS consolidation | 9,596 | 4,068 | **0** |
 
 The large drop in phase 4/5 is mostly the deletion of 161 timestamped
 `catalog/*/_data/index-old-*.htm` backups, which between them referenced tens of
@@ -262,5 +355,25 @@ Markup state after phase 4/5, from `fingerprint.js`:
 | Breadcrumbs pointing at the wrong page | 2,778 | 0 |
 | Stylesheets | 5 | 1 |
 | Script files | 15 | 2 |
+| Pages carrying a duplicated inline `<style>` block | 4,827 | 0 |
 
 The nine pages without a viewport meta are HTML fragments with no `<head>`.
+
+## Known cosmetic exceptions
+
+`catalog.css` defined generic `.style1` / `.style2` / `.style4` classes and was
+loaded by 195 pages. Merging it into the site-wide `site.css` in phase 2 exposed
+those rules to every page. `audit-style-classes.js` bounds the effect: of 1,104
+pages that use one of those class names, all but nine define it themselves, and
+their inline definition wins. Of the nine:
+
+- `catalog/2013/06/index.htm` and `festivals/index.htm` loaded `catalog.css`
+  originally, so they render exactly as before;
+- five `proofs/2010-12/*.htm` pages apply `.style4` to an empty spacer cell,
+  where it has no visible effect;
+- `galleries/davematthewsband_thegorge.htm` gains `font-size: small` on one
+  paragraph;
+- one page is inside the dead `you_old/` tree.
+
+Left as-is deliberately rather than renaming classes across 1,104 pages for a
+single paragraph of visual change.

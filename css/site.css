@@ -395,6 +395,19 @@ hr {
 	font-size: small;
 }
 
+/* Previous / next links on the single-photo pages. The disabled state is a
+   span rather than a greyed-out link so it is skipped by keyboard navigation
+   and not announced as something you can follow. */
+.younavigation a,
+.navDisabled {
+	display: inline-block;
+	padding: 6px 12px;
+}
+
+.navDisabled {
+	color: var(--dc-muted);
+}
+
 /* --------------------------------------------------------------------------
    Catalog listings
    -------------------------------------------------------------------------- */
@@ -468,6 +481,22 @@ hr {
 
 .disable img {
 	border: 0;
+}
+
+/* Listing-page headings for the /you/ and catalog indexes. Previously an inline
+   <style> block duplicated verbatim on 4,827 pages. */
+.pageHeader {
+	font-size: 12pt;
+	letter-spacing: 4px;
+	text-align: center;
+	font-weight: bold;
+}
+
+.yearHeader {
+	font-size: 18pt;
+	letter-spacing: 2px;
+	font-weight: bold;
+	color: #949494;
 }
 
 /* Legacy Expression Web utility classes, still referenced by catalog markup. */

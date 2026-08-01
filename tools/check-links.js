@@ -17,14 +17,23 @@
 const fs = require('fs');
 const path = require('path');
 
-const siteRoot = path.resolve(process.argv[2] || '.');
-const jsonIdx = process.argv.indexOf('--json');
-const jsonOut = jsonIdx > -1 ? process.argv[jsonIdx + 1] : null;
-const limitIdx = process.argv.indexOf('--limit');
-const reportLimit = limitIdx > -1 ? parseInt(process.argv[limitIdx + 1], 10) : 40;
+const args = process.argv.slice(2);
+const jsonIdx = args.indexOf('--json');
+const jsonOut = jsonIdx > -1 ? args[jsonIdx + 1] : null;
+const limitIdx = args.indexOf('--limit');
+const reportLimit = limitIdx > -1 ? parseInt(args[limitIdx + 1], 10) : 40;
 
-/** Directories that are build/tool noise rather than published content. */
-const SKIP_DIRS = new Set(['1cnf', '1pvt', '.git', 'node_modules']);
+/** The first argument that is neither a flag nor a flag's value is the site
+ *  root. Picking it positionally used to swallow `--json`, silently scanning a
+ *  directory that did not exist and reporting a clean bill of health. */
+const flagValues = new Set([jsonIdx, limitIdx].filter((i) => i > -1).map((i) => i + 1));
+const positional = args.filter((a, i) => !a.startsWith('--') && !flagValues.has(i));
+const siteRoot = path.resolve(positional[0] || '.');
+
+/** Directories that are build/tool noise rather than published content.
+ *  `tools` is excluded because the generator templates under tools/templates
+ *  contain {ROOT}-style placeholders that are not real paths. */
+const SKIP_DIRS = new Set(['1cnf', '1pvt', '.git', 'node_modules', 'tools']);
 
 /** Case-insensitive index of every real file, so we also catch case mismatches
  *  (harmless on Windows/IIS locally, fatal if content ever moves to Linux/blob). */

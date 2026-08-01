@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meet and Greet with {ARTIST} at {VENUE} | David Conger Photography | Concerts and Events | Seattle, WA</title>
+<meta name="description" content="Meet and greet photos of {ARTIST} at {VENUE}, {DATE}.">
+
+<link rel="stylesheet" href="{ROOT}css/site.css">
+<script src="{ROOT}js/azureinsights.js" defer></script>
+
+<meta property="og:title" content="Meet and Greet with {ARTIST} at {VENUE}" />
+<meta property="og:description" content="Meet and greet photos from {DATE}." />
+<meta property="og:image" content="https://www.davidconger.com/you/{YEAR}/{SLUG}/thumbnail.jpg" />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="www.davidconger.com" />
+
+</head>
+
+<body>
+<div class="headerNav">
+	<div class="headerNavText">
+		<a href="{ROOT}index.htm">Home</a> &gt; <a href="{ROOT}you/index.htm">Photos of You</a>
+	</div>
+	<div class="headerSocialLinks">
+		<a target="_top" href="https://www.facebook.com/pages/david-conger-photography/139826329427348"><img src="{ROOT}images/icons/facebook-24.png" style="background-color: #3B5998; border-width: 0px;" width="24" height="24" alt="David Conger Photography on Facebook"/></a>&nbsp;
+		<a target="_top" href="https://www.flickr.com/photos/davidconger"><img src="{ROOT}images/icons/flickr-24.png" style="background-color: #0063DB; border-width: 0px;" width="24" height="24" alt="David Conger Photography on Flickr"/></a>&nbsp;
+		<a target="_top" href="https://twitter.com/dcongerphoto"><img src="{ROOT}images/icons/twitter-24.png" style="background-color: #00ACED; border-width: 0px;" width="24" height="24" alt="David Conger Photography on Twitter"/></a>&nbsp;
+		<a target="_top" href="https://instagram.com/dcongerphoto"><img src="{ROOT}images/icons/instagram-24.png" style="background-color: #3F729B; border-width: 0px;" width="24" height="24" alt="David Conger Photography on Instagram"/></a>&nbsp;
+		<a target="_top" href="mailto:david@davidconger.com"><img src="{ROOT}images/icons/email-24.png" style="background-color: #3B5998; border-width: 0px;" width="24" height="24" alt="Email David Conger"/></a>
+	</div>
+</div>
+
+<div class="headerText">
+	<div class="headerTextPre">the concert &amp; event photography of</div>
+	<div class="headerTextMain">David Conger</div>
+	<div class="headerTextSub">david@davidconger.com | Seattle, WA</div>
+</div>
+
+<div id="gallery">
+	<div id="details">
+		<span id="title">{ARTIST}</span><br />
+		<span id="venue">Meet and Greet at {VENUE}</span><br />
+		<span id="date">{DATE}</span>
+	</div>
+
+	<div>
+		&nbsp;<br />If you attended this event, courtesy of {COURTESY} you should find a copy of your photo below and are welcome to save a copy and share it on social media.<br/>For prints, contact
+		<a href="mailto:david@davidconger.com">david@davidconger.com</a>.
+		<span class="younavigation">{PHOTOSBY}</span><br />&nbsp;
+	</div>
+
+	<div class="younavigation">
+		<a href="../../">Back to List</a>
+		<br />&nbsp;
+	</div>
+
+	<ul id="youimages">
+{IMAGES}
+	</ul>
+
+	<div class="younavigation">
+		&nbsp;<br />
+		<a href="../../">Back to List</a>
+		<br />&nbsp;
+	</div>
+</div>
+
+<p class="siteFooter">
+Copyright 2008-{COPYRIGHT} | David Conger, LLC | All Rights Reserved<br />Not for distribution or reuse without permission.
+</p>
+
+</body>
+
+</html>
