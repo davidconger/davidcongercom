@@ -1,0 +1,33 @@
+# davidconger.com
+#
+# The concert archive is the point of the site, so crawling is welcome.
+# The exclusions below are superseded copies and client material, not
+# content anyone should reach from a search result.
+
+User-agent: *
+Allow: /
+
+# Superseded copy of the meet-and-greet section, kept only so old links
+# do not break. The current section is /you/.
+Disallow: /you_old/
+
+# Archived duplicates of gallery pages that were moved rather than deleted.
+Disallow: /galleries/old/
+
+# A superseded copy of 19 events, unreachable from the site's own navigation.
+Disallow: /you/2023/Old/
+
+# Client proof sheets.
+Disallow: /proofs/
+
+# Page templates and the retired generator's source data.
+Disallow: /you/!template/
+Disallow: /galleries/0000/
+Disallow: /catalog/*/_data/
+
+# Leftovers from testing the retired generator.
+Disallow: /galleries/2012/06/test/
+Disallow: /galleries/2016/06/test/
+Disallow: /galleries/2016/06/test2/
+
+Sitemap: https://www.davidconger.com/sitemap.xml

@@ -310,8 +310,98 @@ authoritative when a local file is lost.
 node tools/recover-from-live.js <list-of-paths.txt>
 ```
 
-## Baseline (2026-07-31, before any modernization work)
+## audit-sitemap.js
 
+Reports what the existing `sitemap.xml` actually covers, and why. It was written
+to answer a specific suspicion, and confirmed it: an old site-wide http -> https
+find/replace had rewritten the sitemap's *XML namespace* to
+`https://www.sitemaps.org/schemas/sitemap/0.9`. The namespace is an identifier,
+not a URL to fetch, so changing it made the file invalid to every crawler. The
+same sitemap listed 1,737 of the site's 9,579 pages.
+
+## build-sitemap.js
+
+Regenerates `sitemap.xml` from the file tree, with the correct namespace and a
+`<lastmod>` taken from each file's modification time. Excludes superseded trees
+(`you_old/`, `galleries/old/`), client proof sheets, generator templates
+(`you/!template/`, `galleries/0000/`), the leftover test galleries, and
+`you/2023/Old/`. Fragments with no `<head>` and pages marked `noindex` are
+skipped too.
+
+## diff-sitemap.js
+
+    node tools/diff-sitemap.js <old.xml> <new.xml>
+
+Guards the regeneration: coverage may grow but must never shrink by accident, as
+a dropped URL means an indexed page silently falling out of search. Compares on
+the canonical directory form, since the old sitemap listed both `/path/` and
+`/path/index.htm`.
+
+## audit-seo.js
+
+Counts titles, descriptions, canonical links, OpenGraph tags and `<h1>`s across
+every publishable page, and reports duplicate `<title>` groups. This is the
+metric source for the before/after table below.
+
+## seo-pass.js
+
+    node tools/seo-pass.js [--dry-run] [--limit N] [subdir]
+
+Adds the metadata the retired generator never emitted. Idempotent.
+
+Description text is chosen by priority, not generated blindly:
+
+1. an existing `<meta name="description">` is left alone;
+2. `LANDING_PAGES` supplies hand-written copy for the pages that carry no
+   gallery metadata at all;
+3. an existing hand-written `og:description` is reused — the pre-2014 galleries
+   have genuinely good copy, e.g. "Photos of Journey performing at Key Arena for
+   their Eclipse 2011 Tour", which is better than anything generated;
+4. only then is a sentence built from the page's own `#details` block.
+
+Two details worth knowing before editing it:
+
+- `/you/` venues are stored as "Meet and Greet at Snoqualmie Casino", so the
+  preposition survives stripping the prefix, while concert galleries store a
+  bare venue and need "at " prepended. Getting this backwards produces "Photos
+  of deadmau5 WaMu Theater".
+- `page-2.htm` is a paginated grid of thumbnails, not a photograph. An earlier
+  version treated it as a photo page and titled 427 of them "Photo 2", which is
+  why `photoNumber()` explicitly excludes that filename shape.
+
+## seo-sandbox.ps1
+
+Copies 42 pages spanning every `/you/` year and every gallery era into a temp
+directory, runs the transform, prints every title and description it generated,
+and asserts a second run changes nothing. Every grammar bug above was caught
+here rather than across 9,567 live pages.
+
+## dedupe-titles.js
+
+Makes duplicate `<title>` values unique, and only those. Pages are grouped by
+exact title; a title appearing once is never touched. A colliding group gets a
+date appended to each member's leading segment, and is written only if that
+makes every title in the group distinct.
+
+That last condition is what keeps it idempotent: once a group is separated it no
+longer collides, and a group that cannot be separated is skipped rather than
+accumulating suffixes.
+
+The date is recovered in three steps — the page's own `#details` block, then the
+URL (`/galleries/YYYY/MM/`), then the images the page loads. The third case
+matters: the 749 flat `/galleries/<artist>.htm` pages predate the dated URL
+scheme and carry no date anywhere except in the paths of the photographs they
+display.
+
+## fix-dates.js
+
+Repairs event dates written as "July1, 2013" instead of "July 1, 2013" — 2,302
+pages, all from the retired generator. The replacement is applied only to text
+between tags: run against the raw file it would also rewrite paths such as
+`href=".../July4-fireworks/"`, and in this tree that difference accounted for
+4,450 of the 6,752 raw matches.
+
+## Baseline (2026-07-31, before any modernization work)
 | Metric | Value |
 |---|---:|
 | Pages scanned | 9,759 |
@@ -336,6 +426,7 @@ in 2013), two galleries with unescaped apostrophes in their paths
 | Phase 3 — JavaScript cleanup | 9,759 | 73,807 | 0 |
 | Phase 4/5 — markup modernization | 9,598 | 4,072 | **0** |
 | Phase 6 — generator + CSS consolidation | 9,596 | 4,068 | **0** |
+| Phase 7 — hosting, sitemap and SEO | 9,597 | 4,068 | **0** |
 
 The large drop in phase 4/5 is mostly the deletion of 161 timestamped
 `catalog/*/_data/index-old-*.htm` backups, which between them referenced tens of
@@ -359,8 +450,56 @@ Markup state after phase 4/5, from `fingerprint.js`:
 
 The nine pages without a viewport meta are HTML fragments with no `<head>`.
 
-## Known cosmetic exceptions
+## Discoverability after phase 7
 
+| Metric | Before | After |
+|---|---:|---:|
+| Pages with a meta description | 4 (0.0%) | 9,133 (95.5%) |
+| Pages with a canonical link | 2 (0.0%) | 9,567 (100%) |
+| Pages with OpenGraph tags | 2,134 (22.3%) | 9,274 (96.9%) |
+| Images missing `alt` | 16,434 | 3,631 |
+| Pages sharing a `<title>` | 2,646 (27.7%) | 961 (10.0%) |
+| Worst title collision | 172 pages | 4 pages |
+| URLs in `sitemap.xml` | 1,737, invalid namespace | 8,923, valid |
+| `robots.txt` | absent | present |
+| `web.config` | absent | present |
+| Custom 404 page | absent | present |
+
+The site had no `web.config`, no `robots.txt` and no 404 page at all, so IIS
+served the stock error and every asset was uncached.
+
+`web.config` is the highest-risk file in the repository: a malformed one makes
+IIS return 500 for the whole site. It deliberately avoids `httpCompression`,
+which is locked at the App Service level, and HSTS is left commented out until
+HTTPS-Only is confirmed on and both custom domains have valid certificates. If
+the site breaks after a deploy, deleting the file restores the previous
+behaviour.
+
+The 961 pages that still share a title are mostly the same artist playing the
+same venue in the same month, where no date in the markup, the URL or the image
+paths can separate them.
+
+## Content issues found, not fixed
+
+These need the owner's knowledge and were left alone deliberately.
+
+- **`you/2014/little-river-band-nov6-at-snoqualmie-casino/`** contains six files
+  named `...nov7...`, and two of its pages display "November 7, 2014". The two
+  event index pages are correct, so it looks like a handful of photographs from
+  the second night were filed under the first. Which night those six belong to
+  is not recoverable from the files.
+- **`catalog/2019/` and `catalog/2020/`** contain only `_data/*.txt`; the catalog
+  was never generated for those years, so `catalog/index.htm` is still the 2018
+  catalog. The generator's source data survives, so they could be rebuilt.
+- **`about.htm`** lists several client relationships as "Present" with date
+  ranges ending in 2021.
+- **`you/2023/Old/`** holds 19 events and 637 pages that nothing links to, and
+  `galleries/0000/00/template/` still ships five pages full of `{0}` placeholders.
+  Both are now excluded from the sitemap and disallowed in `robots.txt` rather
+  than deleted, since deleting them would remove live URLs.
+- **`pinterest-7d38d.html`** is a verification stub with no `<title>`.
+
+## Known cosmetic exceptions
 `catalog.css` defined generic `.style1` / `.style2` / `.style4` classes and was
 loaded by 195 pages. Merging it into the site-wide `site.css` in phase 2 exposed
 those rules to every page. `audit-style-classes.js` bounds the effect: of 1,104
