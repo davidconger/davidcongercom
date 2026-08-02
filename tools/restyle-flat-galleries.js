@@ -36,7 +36,6 @@ const argv = process.argv.slice(2);
 const dry = argv.includes('--dry');
 const sample = argv.includes('--sample') ? Number(argv[argv.indexOf('--sample') + 1]) || 0 : 0;
 
-const UP = '../';
 const FONT = "<link href='https://fonts.googleapis.com/css?family=Hind:400,600' rel='stylesheet' type='text/css' />";
 
 /* Not galleries: the year list, two superseded index pages, and two hubs whose
@@ -70,6 +69,13 @@ function stripEmptyTables(html) {
 function transform(file, html) {
   if (/css\/stream\.css/.test(html) && /class="galleryPage flatGallery"/.test(html)) return 'skip';
 
+  /* The same markup family lives at two depths: galleries/<slug>.htm from the
+     2009-2012 archive, and galleries/YYYY/MM/<slug>/index.htm from the years
+     where the foldered layout was already in use but the page was still hand
+     built. Everything relative is derived from the depth rather than assumed. */
+  const rel = path.relative(ROOT, file).replace(/\\/g, '/');
+  const UP = '../'.repeat(rel.split('/').length - 1);
+
   const bodyOpen = html.indexOf('<body');
   if (bodyOpen < 0) return null;
 
@@ -87,7 +93,7 @@ function transform(file, html) {
   // banner links home on some pages and at the catalog on others, and two
   // pages have an empty nav and no banner at all -- there the cut runs to the
   // title instead.
-  const banner = /<p><a href="[^"]*">\s*<img src="\.\.\/images\/header\.png"[^>]*><\/a><\/p>/;
+  const banner = new RegExp(`<p><a href="[^"]*">\\s*<img src="${UP.replace(/\./g, '\\.')}images/header\\.png"[^>]*></a></p>`);
   const m = rest.match(banner);
   if (m) rest = rest.slice(m.index + m[0].length);
 
@@ -105,9 +111,14 @@ function transform(file, html) {
     ? details.replace(/^<span\b[^>]*>/, '<span id="title">')
     : details.replace(/^([\s\S]*?)(<br\s*\/?>)/, '<span id="title">$1</span>$2');
 
-  const year = (rest.match(/<img src="(20\d\d)\/\d\d\//) || [])[1] || null;
+  /* Foldered pages carry the year in their own path; the flat ones only reveal
+     it through an image src, and those whose photographs are still on Flickr
+     do not reveal it at all. */
+  const year = (rel.match(/^galleries\/(20\d\d)\//) || [])[1]
+    || (rest.match(/<img src="(20\d\d)\/\d\d\//) || [])[1]
+    || null;
   const crumb = year
-    ? `\n			<a class="crumbYear" href="${year}/" title="All ${year} galleries">${year}</a>`
+    ? `\n			<a class="crumbYear" href="${UP}galleries/${year}/" title="All ${year} galleries">${year}</a>`
     : '';
   const left = `			<a class="socialLink socialHome" href="${UP}index.htm" aria-label="Home" title="Home">${HOME_ICON}</a>${crumb}`;
 
@@ -131,9 +142,30 @@ function transform(file, html) {
     + footer() + after;
 }
 
-const files = fs.readdirSync(path.join(ROOT, 'galleries'))
-  .filter((f) => /\.html?$/i.test(f) && !NOT_A_GALLERY.has(f.toLowerCase()))
-  .map((f) => path.join(ROOT, 'galleries', f));
+/* Walks the whole gallery tree rather than just its root: the same hand built
+   markup turns up at galleries/<slug>.htm and at galleries/YYYY/MM/<slug>/.
+   Pages the foldered restyler already owns are recognised by #gallery and left
+   to it; galleries/0000/ holds generator templates and is not public. */
+function collect(dir, out) {
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, ent.name);
+    if (ent.isDirectory()) {
+      if (ent.name !== '0000') collect(p, out);
+      continue;
+    }
+    if (!/\.html?$/i.test(ent.name)) continue;
+    if (NOT_A_GALLERY.has(ent.name.toLowerCase())
+      && path.dirname(p) === path.join(ROOT, 'galleries')) continue;
+    const html = fs.readFileSync(p, 'utf8');
+    if (/id="gallery"/.test(html) && !/class="galleryPage flatGallery"/.test(html)) continue;
+    // The generated year stream pages are already current and are not galleries.
+    if (/streamTopBar/.test(html) && !/class="galleryPage flatGallery"/.test(html)) continue;
+    out.push(p);
+  }
+  return out;
+}
+
+const files = collect(path.join(ROOT, 'galleries'), []);
 
 let changed = 0;
 let skipped = 0;
