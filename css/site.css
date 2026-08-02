@@ -307,7 +307,13 @@ hr {
 	padding: 5px 20px;
 }
 
+/* The title is an <h1>: it is the page's heading, and the archive's markup
+   says so. Every size and weight below is set per section in stream.css, so
+   all this has to do is cancel the margin a heading arrives with -- the
+   section rules that want space under the title set margin-bottom themselves
+   and outrank this shorthand. */
 #gallery #details #title {
+	margin: 0;
 	font-weight: bold;
 	letter-spacing: 4pt;
 }

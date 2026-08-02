@@ -30,6 +30,7 @@
 const fs = require('fs');
 const path = require('path');
 const { HOME_ICON, topBar, masthead, footer } = require('./lib/chrome');
+const { promoteTitle } = require('./add-headings');
 
 const ROOT = path.resolve(__dirname, '..');
 const argv = process.argv.slice(2);
@@ -110,6 +111,9 @@ function transform(file, html) {
   details = /^<span\b/.test(details)
     ? details.replace(/^<span\b[^>]*>/, '<span id="title">')
     : details.replace(/^([\s\S]*?)(<br\s*\/?>)/, '<span id="title">$1</span>$2');
+  // The title is the page's heading, so it ships as one rather than waiting
+  // for tools/add-headings.js to come along behind.
+  details = promoteTitle(details) || details;
 
   /* Foldered pages carry the year in their own path; the flat ones only reveal
      it through an image src, and those whose photographs are still on Flickr

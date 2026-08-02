@@ -46,9 +46,11 @@ const escapeAttr = (s) => s
 
 /** Pulls the artist / venue / date the gallery templates already emit. */
 function details(html) {
+  // The title ships as an <h1> and the other two as spans, so the element is
+  // matched by its id rather than its tag.
   const grab = (id) => {
-    const m = html.match(new RegExp(`<span[^>]+id=["']${id}["'][^>]*>([\\s\\S]*?)</span>`, 'i'));
-    return m ? decode(m[1]) : '';
+    const m = html.match(new RegExp(`<([a-z0-9]+)[^>]+id=["']${id}["'][^>]*>([\\s\\S]*?)</\\1>`, 'i'));
+    return m ? decode(m[2]) : '';
   };
   return { title: grab('title'), venue: grab('venue'), date: grab('date') };
 }

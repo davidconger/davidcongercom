@@ -37,9 +37,11 @@ if (!argv.includes('--picks') || !picksFile) {
 
 /* ------------------------------------------------------------------- parse */
 
+// The title is an <h1> and the venue and date are spans, so the element is
+// found by its id rather than by its tag name.
 function tag(html, id) {
-  const m = html.match(new RegExp(`<span[^>]*\\bid="${id}"[^>]*>([\\s\\S]*?)</span>`, 'i'));
-  return m ? decode(m[1].replace(/<[^>]+>/g, '').trim()) : '';
+  const m = html.match(new RegExp(`<([a-z0-9]+)[^>]*\\bid="${id}"[^>]*>([\\s\\S]*?)</\\1>`, 'i'));
+  return m ? decode(m[2].replace(/<[^>]+>/g, '').trim()) : '';
 }
 
 function decode(s) {
