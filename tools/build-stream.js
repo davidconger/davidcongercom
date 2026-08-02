@@ -184,6 +184,51 @@ function splitDescription(desc) {
   return { artist, venue: trimmed.length > 1 ? trimmed[trimmed.length - 1] : '', date };
 }
 
+/* The catalog data for 2016 and 2017 was recorded without venues. Its entries
+   read "Pretenders, Seattle, WA. December 11, 2016", where every other year
+   writes "Pretenders, KeyArena, Seattle, WA. ...", so 28 shows across those two
+   years lost the middle line of their caption.
+
+   The gallery page itself never lost it, so the venue is taken from there. Its
+   #venue field is the archive's structured record of the venue and is written
+   "<Venue>[, <Complex>], <City>, <ST>", which makes the venue the first part.
+   The og:description is tried second, because a handful of pages phrase it as
+   "performs at X on Friday, ..." rather than the "X at Y in Z on <date>" shape
+   descriptionFromGallery can read, and a few older pages have no #venue at all.
+
+   Only the venue is taken. The catalog stays authoritative for the artist, the
+   date and the order shows appear in, because it is the source the rest of the
+   page is built from and disagreeing with it halfway would be worse than a
+   missing line. */
+function venueFromGalleryPage(rel) {
+  const file = path.join(ROOT, 'galleries', rel, 'index.htm');
+  if (!fs.existsSync(file)) return '';
+  const m = /<span id="venue">([^<]*)<\/span>/i.exec(fs.readFileSync(file, 'utf8'));
+  if (!m) return '';
+
+  const parts = decodeHtml(m[1]).split(',').map((s) => s.trim()).filter(Boolean);
+  if (!parts.length) return '';
+
+  // "Seattle, WA" on its own names a city, not a venue, and calling a show's
+  // venue "Seattle" would read worse than showing no venue at all.
+  if (parts.length < 3 && /^[A-Z]{2}$/.test(parts[parts.length - 1])) return '';
+  return parts[0];
+}
+
+function describeShow(rel, desc) {
+  const parsed = splitDescription(desc);
+  if (parsed.venue) return parsed;
+
+  const direct = venueFromGalleryPage(rel);
+  if (direct) return { ...parsed, venue: direct };
+
+  const fromGallery = descriptionFromGallery(rel);
+  if (!fromGallery) return parsed;
+
+  const venue = splitDescription(fromGallery).venue;
+  return venue ? { ...parsed, venue } : parsed;
+}
+
 function descriptionFromGallery(rel) {
   const file = path.join(ROOT, 'galleries', rel, 'index.htm');
   if (!fs.existsSync(file)) return null;
@@ -332,7 +377,7 @@ function shows(year) {
     else if (fs.existsSync(path.join(ROOT, 'galleries', `${slug}.htm`))) href = `${slug}.htm`;
     else continue;
 
-    out.push({ rel, href, ...splitDescription(v.desc), desc: v.desc, order: v.order, frames });
+    out.push({ rel, href, ...describeShow(rel, v.desc), desc: v.desc, order: v.order, frames });
   }
 
   out.sort((a, b) => {
