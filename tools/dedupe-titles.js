@@ -27,8 +27,12 @@ const SKIP_DIRS = new Set([
   '1cnf', '1pvt', '.git', 'node_modules', 'tools',
   '!template', 'template', 'test', 'test2',
 ]);
-/** galleries/0000/ is the retired generator's placeholder year. */
-const SKIP_PATHS = [/^galleries\/0000\//i];
+/**
+ * galleries/0000/ is the retired generator's placeholder year, and
+ * you/<year>/Old/ is a superseded copy of nineteen events. Neither is indexed,
+ * so neither should hold a title hostage from the page that is.
+ */
+const SKIP_PATHS = [/^galleries\/0000\//i, /^you\/\d{4}\/old\//i];
 const dryRun = process.argv.includes('--dry-run');
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -77,7 +81,9 @@ function imageDate(html) {
 
 /**
  * A date recovered from the URL. Pre-2014 galleries carry no #details block,
- * but the archive has always been filed under /galleries/YYYY/MM/.
+ * but the archive has always been filed under /galleries/YYYY/MM/, and the
+ * section trees -- festivals, radio and the rest -- are filed by year, which is
+ * enough to tell an annual event apart from itself.
  */
 function pathDate(rel) {
   let m = rel.match(/^galleries\/(\d{4})\/(\d{1,2})\//i);
@@ -86,6 +92,8 @@ function pathDate(rel) {
     return mo ? `${mo} ${m[1]}` : m[1];
   }
   m = rel.match(/^(?:you|you_old)\/(\d{4})\//i);
+  if (m) return m[1];
+  m = rel.match(/^(?:festivals|other|radio|tearsheets|catalog)\/(\d{4})\//i);
   if (m) return m[1];
   m = rel.match(/^galleries\/(\d{4})\//i);
   return m ? m[1] : '';

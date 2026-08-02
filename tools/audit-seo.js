@@ -7,9 +7,11 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
+// Compared lowercased: you/2023/Old/ is capitalised on disk, and a
+// case-sensitive check let 637 superseded pages into the numbers.
 const SKIP = new Set(['1cnf', '1pvt', '.git', 'node_modules', 'tools', 'you_old', 'old', '_data', '!template', 'proofs']);
 
-const stats = { pages: 0, title: 0, emptyTitle: 0, description: 0, canonical: 0, og: 0, h1: 0 };
+const stats = { pages: 0, title: 0, emptyTitle: 0, description: 0, canonical: 0, og: 0, h1: 0, noindex: 0 };
 const dupTitles = new Map();
 const noTitle = [];
 
@@ -18,10 +20,13 @@ const noTitle = [];
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
   for (const e of entries) {
     const p = path.join(dir, e.name);
-    if (e.isDirectory()) { if (!SKIP.has(e.name)) walk(p); continue; }
+    if (e.isDirectory()) { if (!SKIP.has(e.name.toLowerCase())) walk(p); continue; }
     if (!/\.html?$/i.test(e.name)) continue;
     const text = fs.readFileSync(p, 'utf8');
     if (!/<head[\s>]/i.test(text)) continue;
+    // A page that asks not to be indexed is not competing with anything, so it
+    // is not measured as though it were.
+    if (/<meta[^>]+name\s*=\s*["']robots["'][^>]*noindex/i.test(text)) { stats.noindex++; continue; }
     stats.pages++;
     const rel = path.relative(ROOT, p).replace(/\\/g, '/');
 
@@ -44,6 +49,7 @@ const noTitle = [];
 
 const pct = (n) => `${n} (${((n / stats.pages) * 100).toFixed(1)}%)`;
 console.log(`  publishable pages     : ${stats.pages}`);
+console.log(`  excluded, noindex     : ${stats.noindex}`);
 console.log(`  with a <title>        : ${pct(stats.title)}`);
 console.log(`  with a description    : ${pct(stats.description)}`);
 console.log(`  with a canonical link : ${pct(stats.canonical)}`);
