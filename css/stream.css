@@ -922,6 +922,10 @@ a.yearStep:focus-visible {
    margins are exact. */
 .homeStream {
 	position: relative;
+	/* The 1308px cap the rest of the stream keeps is what was holding the band
+	   short of the window edge, and it buys nothing here: the home page is one
+	   640px card, which the grid centres on its own. */
+	max-width: none;
 	margin-left: -12px;
 	margin-right: -12px;
 	padding-left: 12px;
