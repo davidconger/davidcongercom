@@ -1350,3 +1350,326 @@ main.prose.pageStream {
 	text-decoration: underline;
 	text-decoration-color: rgba(255, 255, 255, 0.75);
 }
+/* --------------------------------------------------------------------------
+   Meet and greet pages (/you/)
+
+   Same chrome as everywhere else, but the photographs want the opposite
+   treatment to the concert galleries. These are not watermarked and they are
+   not portfolio pieces -- they belong to the person in them -- so there is no
+   caption overlay, nothing sits on top of the image, and the frame is a shadow
+   rather than the old white hairline.
+
+   Three list ids are in play, laid down by three generations of the generator:
+   #youimages is the thumbnail grid, #images and #youimage are the full photo.
+   -------------------------------------------------------------------------- */
+
+.youPage #gallery {
+	max-width: 1308px;
+	padding: 0 0 60px;
+}
+
+.youPage #gallery #details {
+	padding: 4px 20px 18px;
+	font-family: var(--dc-font);
+	color: #cfcfcf;
+}
+
+.youPage #gallery #details #title {
+	display: block;
+	margin-bottom: 6px;
+	font-size: 26px;
+	font-weight: 600;
+	letter-spacing: 2.6px;
+	color: #f2f2f2;
+}
+
+.youPage #gallery #details #venue {
+	display: block;
+	font-size: 15px;
+	letter-spacing: 0.4px;
+	color: #b4b4b4;
+}
+
+.youPage #gallery #details #date {
+	display: block;
+	margin-top: 4px;
+	font-size: 12px;
+	letter-spacing: 2.2px;
+	text-transform: uppercase;
+	color: #8a8a8a;
+}
+
+.youPage #gallery #details br {
+	display: none;
+}
+
+/* The paragraph explaining how to save the photo, and the page navigation. */
+.youPage #gallery > div {
+	font-size: 14px;
+	line-height: 1.6;
+	color: #a8a8a8;
+}
+
+.youPage .younavigation {
+	font-size: 13px;
+	letter-spacing: 0.6px;
+}
+
+.youPage .younavigation a:link,
+.youPage .younavigation a:visited,
+.youPage #gallery > div a:link,
+.youPage #gallery > div a:visited {
+	color: #dcdcdc;
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 255, 255, 0.32);
+	text-underline-offset: 4px;
+}
+
+.youPage .younavigation a:hover,
+.youPage .younavigation a:focus,
+.youPage .younavigation a:active,
+.youPage #gallery > div a:hover,
+.youPage #gallery > div a:focus,
+.youPage #gallery > div a:active {
+	color: #ffffff;
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 255, 255, 0.75);
+}
+
+.youPage .navDisabled {
+	color: #6a6a6a;
+}
+
+/* The thumbnail grid. Centred rather than left-aligned so a short last row
+   sits under the middle of the one above it. */
+.youPage #gallery #youimages {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 18px;
+	padding: 10px 0 0;
+}
+
+.youPage #gallery #youimages li {
+	width: auto;
+	margin: 0;
+	padding: 0;
+}
+
+.youPage #gallery #youimages li a {
+	display: block;
+	line-height: 0;
+}
+
+/* site.css puts a 1px white border on all three of these. A border on a
+   photograph reads as a mount; a shadow reads as the photograph sitting on the
+   page, which is what the concert galleries do now too. Two shadows: a tight
+   dark one for the edge and a wide soft one for the lift. */
+.youPage #gallery #images li img,
+.youPage #gallery #youimage li img,
+.youPage #gallery #youimages li img {
+	border: 0;
+	margin: 0;
+	box-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.5),
+		0 14px 34px rgba(0, 0, 0, 0.45);
+	transition: box-shadow 200ms ease;
+}
+
+.youPage #gallery #youimages li a:hover img,
+.youPage #gallery #youimages li a:focus img {
+	box-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.55),
+		0 18px 44px rgba(0, 0, 0, 0.6);
+}
+
+.youPage #gallery #youimages li a:focus-visible img {
+	outline: 2px solid #0066ff;
+	outline-offset: 3px;
+}
+
+/* The full photograph, centred with room to breathe. */
+.youPage #gallery #images,
+.youPage #gallery #youimage {
+	display: flex;
+	justify-content: center;
+	padding: 12px 0 6px;
+}
+
+.youPage #gallery #images li,
+.youPage #gallery #youimage li {
+	margin: 0;
+	padding: 0;
+	max-width: 100%;
+}
+
+.youPage #gallery #images li img,
+.youPage #gallery #youimage li img {
+	max-width: 100%;
+	height: auto;
+}
+
+@media (max-width: 720px) {
+	.youPage #gallery #details #title {
+		font-size: 21px;
+		letter-spacing: 2px;
+	}
+
+	.youPage #gallery #youimages {
+		gap: 12px;
+	}
+}
+/* --------------------------------------------------------------------------
+   Catalog grids
+
+   The /you/ index, /you/previous.htm and the year catalogs under /catalog/ all
+   use the same #catalog > ul.catalogList markup, so they get the same
+   treatment: the thumbnails lose the white hairline for the shadow the rest of
+   the site now uses, and the caption under each one is set as a caption rather
+   than as body text.
+   -------------------------------------------------------------------------- */
+
+.pageStream #catalog {
+	font-size: 13px;
+}
+
+.pageStream #catalog .catalogList {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 26px 20px;
+	padding-top: 8px;
+}
+
+.pageStream #catalog .catalogList li {
+	width: 240px;
+	margin: 0;
+	padding: 0;
+}
+
+.pageStream #catalog .catalogList li img {
+	display: block;
+	margin: 0 0 10px;
+	border: 0;
+	box-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.5),
+		0 12px 28px rgba(0, 0, 0, 0.42);
+	transition: box-shadow 200ms ease;
+}
+
+.pageStream #catalog .catalogList li a:hover img,
+.pageStream #catalog .catalogList li a:focus img {
+	box-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.55),
+		0 16px 38px rgba(0, 0, 0, 0.58);
+}
+
+.pageStream #catalog .catalogList li a:focus-visible img {
+	outline: 2px solid #0066ff;
+	outline-offset: 3px;
+}
+
+/* The <br> after each image is what the old generator used for the gap the
+   margin now provides. */
+.pageStream #catalog .catalogList li img + br {
+	display: none;
+}
+
+.pageStream #catalog .catalogList li a:link,
+.pageStream #catalog .catalogList li a:visited {
+	display: block;
+	color: #a8a8a8;
+	line-height: 1.5;
+	text-decoration: none;
+}
+
+.pageStream #catalog .catalogList li a:hover,
+.pageStream #catalog .catalogList li a:focus,
+.pageStream #catalog .catalogList li a:active {
+	color: #e8e8e8;
+	text-decoration: none;
+}
+
+.pageStream #catalog .catalogList li event {
+	display: block;
+	font-size: 14px;
+	font-weight: 600;
+	color: #ececec;
+}
+
+.pageStream #catalog .catalogList li venue,
+.pageStream #catalog .catalogList li date {
+	display: block;
+}
+
+.pageStream #catalog .catalogList li date {
+	font-size: 11px;
+	letter-spacing: 1.4px;
+	text-transform: uppercase;
+	color: #808080;
+}
+
+/* The heading block above the grid on the /you/ index and the year catalogs. */
+.pageStream .pageHeader {
+	display: block;
+	margin-bottom: 10px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 2.6px;
+	text-transform: uppercase;
+	color: #9a9a9a;
+}
+
+.pageStream .yearHeader {
+	font-size: 30px;
+	font-weight: 600;
+	letter-spacing: 1px;
+	color: #f2f2f2;
+}
+
+.pageStream #catalogNav,
+.pageStream #dcCatalogNav,
+.pageStream #dcListingNav {
+	font-size: 13px;
+	color: #8f8f8f;
+}
+
+.pageStream #catalogNav a:link,
+.pageStream #catalogNav a:visited,
+.pageStream #dcCatalogNav a:link,
+.pageStream #dcCatalogNav a:visited,
+.pageStream #dcListingNav a:link,
+.pageStream #dcListingNav a:visited {
+	color: #dcdcdc;
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 255, 255, 0.34);
+	text-underline-offset: 4px;
+}
+
+.pageStream #catalogNav a:hover,
+.pageStream #catalogNav a:focus,
+.pageStream #dcCatalogNav a:hover,
+.pageStream #dcCatalogNav a:focus,
+.pageStream #dcListingNav a:hover,
+.pageStream #dcListingNav a:focus {
+	color: #ffffff;
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 255, 255, 0.75);
+}
+
+.pageStream #catalog .catalogGroupHeader {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 2.6px;
+	text-transform: uppercase;
+	color: #9a9a9a;
+}
+.pageStream .catalogIntro {
+	padding: 4px 0 22px;
+	text-align: center;
+}
+/* Two-line event names would otherwise push the venue and date out of step
+   with the rest of the row. */
+.pageStream #catalog .catalogList li event {
+	min-height: 2.6em;
+}

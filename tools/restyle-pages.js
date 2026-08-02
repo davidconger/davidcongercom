@@ -35,6 +35,10 @@ const FONT = "<link href='https://fonts.googleapis.com/css?family=Hind:400,600' 
 
 const SECTIONS = ['catalog', 'festivals', 'other', 'radio', 'tearsheets'];
 
+/* The two /you/ landing pages have the same old header as the sections and no
+   #gallery, so restyle-you.js cannot see them. */
+const EXTRA = ['you/index.htm', 'you/previous.htm'];
+
 /* index.htm is the home page and already current. The Pinterest file exists
    only to carry a verification tag and is not a page anyone navigates to. */
 const ROOT_SKIP = new Set(['index.htm', 'pinterest-7d38d.html']);
@@ -163,6 +167,7 @@ function collect() {
     }
   };
   for (const s of SECTIONS) walk(path.join(ROOT, s));
+  for (const f of EXTRA) out.push(path.join(ROOT, f.replace(/\//g, path.sep)));
   return out;
 }
 
