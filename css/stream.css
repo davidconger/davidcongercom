@@ -1175,8 +1175,17 @@ a.yearStep:focus-visible {
    may be allowed to reach them. The class is the fence.
    -------------------------------------------------------------------------- */
 
+/* Foldered gallery pages carry the same 640px frames the year pages do, so they
+   get the same two-up grid: two columns where the window can hold 1308px, one
+   below that, centred either way. A quarter of the images are portrait 426x640
+   rather than landscape 640x426, so the tracks stay a fixed 640px and portraits
+   sit centred inside one; align-items keeps every row hanging from its top edge
+   instead of stretching the short ones.
+
+   Flat pages are excluded. Their images are 500x334 and 334x500, a different
+   shape entirely, and they are laid out inside .flatImages rather than #images. */
 .galleryPage #gallery {
-	max-width: 640px;
+	max-width: 1308px;
 	margin: 0 auto;
 	padding: 0;
 }
@@ -1230,19 +1239,52 @@ a.yearStep:focus-visible {
 
 .galleryPage #gallery #images {
 	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, 640px);
+	justify-content: center;
+	align-items: start;
+	gap: 46px 28px;
+}
+
+/* Once the grid is a single column the horizontal gutter is gone, so the
+   vertical rhythm tightens to match, exactly as .showGrid does. */
+@media (max-width: 1331px) {
+	.galleryPage #gallery #images {
+		gap: 38px 0;
+	}
+}
+
+/* Below the frame's own width there is no choice but to scale it. */
+@media (max-width: 671px) {
+	.galleryPage #gallery #images {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
 
 .galleryPage #gallery #images li {
 	padding: 0;
-	margin: 0 0 30px;
+	margin: 0;
+	min-width: 0;
 }
 
 /* The 2013-2015 pages wrap every photograph in a pair of .shareOuter elements
    left over from the Facebook share overlay. The overlay is gone; the wrappers
    stay because they are inside the gallery markup, so they are flattened to
-   nothing rather than removed from a thousand files. */
-.galleryPage #gallery #images .shareOuter {
-	display: block;
+   nothing rather than removed from a thousand files.
+
+   The generator also puts *two* portrait frames inside a single <li> -- 1,061
+   of them across 730 pages -- because a pair of 426x640 portraits was always
+   meant to occupy one landscape-shaped row rather than tower over it. Both the
+   list item and the surviving wrappers are laid out as a centred flex row so
+   that pair sits side by side and shrinks to fit the column, exactly as the
+   flat legacy pages do. A lone photograph is unaffected: a one-item centred
+   flex row renders identically to the block it replaces. */
+.galleryPage #gallery #images li,
+.galleryPage #gallery #images li .shareOuter {
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+	gap: 12px;
 	line-height: 0;
 }
 
@@ -1251,7 +1293,8 @@ a.yearStep:focus-visible {
    it off the background. */
 .galleryPage #gallery #images li img {
 	display: block;
-	margin: 0 auto;
+	margin: 0;
+	min-width: 0;
 	max-width: 100%;
 	height: auto;
 	border: 0;
@@ -1323,8 +1366,8 @@ a.yearStep:focus-visible {
 		letter-spacing: 2.2px;
 	}
 
-	.galleryPage #gallery #images li {
-		margin: 0 0 20px;
+	.galleryPage #gallery #images {
+		gap: 20px 0;
 	}
 }
 /* --------------------------------------------------------------------------
