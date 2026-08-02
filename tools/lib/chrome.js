@@ -18,6 +18,15 @@ const CHEVRON_LEFT = "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria
 
 const CHEVRON_RIGHT = "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\" focusable=\"false\"><path fill=\"currentColor\" d=\"M8.46967 4.21967C8.17678 4.51256 8.17678 4.98744 8.46967 5.28033L15.1893 12L8.46967 18.7197C8.17678 19.0126 8.17678 19.4874 8.46967 19.7803C8.76256 20.0732 9.23744 20.0732 9.53033 19.7803L16.7803 12.5303C17.0732 12.2374 17.0732 11.7626 16.7803 11.4697L9.53033 4.21967C9.23744 3.92678 8.76256 3.92678 8.46967 4.21967Z\"/></svg>";
 
+/* The scroll hints in the year picker. Rather than draw two more paths, the
+   same chevron is turned a quarter each way, so every arrow in the year bar --
+   the two that step a year and the two that scroll the list -- is visibly the
+   one shape. They are smaller than the stepping arrows because they are a hint
+   about the list rather than a control of their own. */
+const CHEVRON_UP = "<svg viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" aria-hidden=\"true\" focusable=\"false\"><g transform=\"rotate(90 12 12)\"><path fill=\"currentColor\" d=\"M15.5303 4.21967C15.8232 4.51256 15.8232 4.98744 15.5303 5.28033L8.81066 12L15.5303 18.7197C15.8232 19.0126 15.8232 19.4874 15.5303 19.7803C15.2374 20.0732 14.7626 20.0732 14.4697 19.7803L7.21967 12.5303C6.92678 12.2374 6.92678 11.7626 7.21967 11.4697L14.4697 4.21967C14.7626 3.92678 15.2374 3.92678 15.5303 4.21967Z\"/></g></svg>";
+
+const CHEVRON_DOWN = "<svg viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" aria-hidden=\"true\" focusable=\"false\"><g transform=\"rotate(-90 12 12)\"><path fill=\"currentColor\" d=\"M15.5303 4.21967C15.8232 4.51256 15.8232 4.98744 15.5303 5.28033L8.81066 12L15.5303 18.7197C15.8232 19.0126 15.8232 19.4874 15.5303 19.7803C15.2374 20.0732 14.7626 20.0732 14.4697 19.7803L7.21967 12.5303C6.92678 12.2374 6.92678 11.7626 7.21967 11.4697L14.4697 4.21967C14.7626 3.92678 15.2374 3.92678 15.5303 4.21967Z\"/></g></svg>";
+
 /* The four social destinations, as inline SVG in currentColor. Flickr is gone
    from the set: the account has not been updated in a decade and the tile was
    the only one of the five whose brand no longer means anything to a visitor. */
@@ -63,4 +72,4 @@ function footer() {
 Copyright 2008-2026 | David Conger, LLC | All Rights Reserved<br />Not for distribution or reuse without permission.</p>`;
 }
 
-module.exports = { HOME_ICON, CHEVRON_LEFT, CHEVRON_RIGHT, SOCIAL, topBar, homeLink, masthead, footer };
+module.exports = { HOME_ICON, CHEVRON_LEFT, CHEVRON_RIGHT, CHEVRON_UP, CHEVRON_DOWN, SOCIAL, topBar, homeLink, masthead, footer };

@@ -348,4 +348,145 @@
 	// The year pins as soon as it reaches the bar, which is the moment the
 	// masthead -- the last thing above it -- has passed the bar's full height.
 	watchStick(yearBar, masthead, 'is-stuck', barHeight);
+
+	/* ------------------------------------------------------------------
+	   Year picker
+
+	   The year in the bar is also the door to every other year. Opening it
+	   is meant to feel like the label unfolding rather than a menu
+	   arriving, so the row for the year you are on is placed over the
+	   label it came from and the rest of the years appear around it.
+
+	   That placement is measured rather than calculated. The label and the
+	   rows are different elements at different sizes inside a bar that
+	   changes height when it pins, so the reliable way to land one on the
+	   other is to open the list, scroll it, then read both boxes and shift
+	   the list by the difference. Everything about the list is
+	   fixed-height for the same reason: nothing may change its geometry
+	   while it is open, or the year slides off its own label.
+	   ------------------------------------------------------------------ */
+	var pick = document.querySelector('.yearPick');
+	var label = pick && pick.querySelector('.yearLabel');
+	var menu = pick && pick.querySelector('.yearMenu');
+	var list = pick && pick.querySelector('.yearMenuList');
+
+	if (pick && label && menu && list) {
+		var current = menu.querySelector('.yearMenuItem.is-current');
+		var fadeUp = menu.querySelector('.yearMenuStep.is-up');
+		var fadeDown = menu.querySelector('.yearMenuStep.is-down');
+		var stops = [].slice.call(menu.querySelectorAll('.yearMenuItem, .yearMenuAll'));
+		var open = false;
+
+		function fades() {
+			var top = list.scrollTop > 1;
+			var bottom = list.scrollTop + list.clientHeight < list.scrollHeight - 1;
+			if (fadeUp) fadeUp.classList.toggle('is-off', !top);
+			if (fadeDown) fadeDown.classList.toggle('is-off', !bottom);
+		}
+
+		// Centre the year you are on where it can be centred, and let it sit at
+		// the top or the bottom of the list at the two ends of the archive --
+		// which is the truth of where you are, and the arrows say the same.
+		function place() {
+			menu.style.top = '0px';
+			menu.style.transform = 'translateX(-50%)';
+
+			var anchor = current || stops[0];
+			if (anchor) {
+				// Relative to the list's own box rather than offsetTop, which is
+				// measured from the menu and so carries the menu's padding and
+				// the scroll hint above the list with it.
+				list.scrollTop += (anchor.getBoundingClientRect().top - list.getBoundingClientRect().top)
+					- (list.clientHeight - anchor.offsetHeight) / 2;
+			}
+			fades();
+			if (!anchor) return;
+
+			var a = anchor.getBoundingClientRect();
+			var l = label.getBoundingClientRect();
+			menu.style.top = (l.top - a.top) + 'px';
+			menu.style.transform = 'translateX(calc(-50% + '
+				+ ((l.left + l.width / 2) - (a.left + a.width / 2)) + 'px))';
+		}
+
+		function show() {
+			if (open) return;
+			open = true;
+			menu.hidden = false;
+			place();
+			// The class is set on the next frame so the fade actually runs;
+			// applied in the same frame as `hidden` coming off, there is no
+			// starting value to animate from.
+			requestAnimationFrame(function () { menu.classList.add('is-open'); });
+			label.setAttribute('aria-expanded', 'true');
+		}
+
+		function hide(refocus) {
+			if (!open) return;
+			open = false;
+			menu.classList.remove('is-open');
+			menu.hidden = true;
+			label.setAttribute('aria-expanded', 'false');
+			if (refocus) label.focus();
+		}
+
+		function step(dir) {
+			var here = stops.indexOf(document.activeElement);
+			if (here < 0) here = current ? stops.indexOf(current) : 0;
+			var next = stops[Math.min(stops.length - 1, Math.max(0, here + dir))];
+			if (next) next.focus();
+		}
+
+		label.setAttribute('aria-expanded', 'false');
+		label.setAttribute('aria-controls', menu.id || 'yearMenu');
+
+		label.addEventListener('click', function (e) {
+			// A modifier click on a link means "somewhere else", and the link
+			// still points at the list of every year, so leave it alone.
+			if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+			e.preventDefault();
+			if (open) hide(false); else { show(); if (current) current.focus(); }
+		});
+
+		label.addEventListener('keydown', function (e) {
+			if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+			e.preventDefault();
+			show();
+			if (current) current.focus();
+		});
+
+		menu.addEventListener('keydown', function (e) {
+			if (e.key === 'Escape') { e.preventDefault(); hide(true); return; }
+			if (e.key === 'ArrowDown') { e.preventDefault(); step(1); return; }
+			if (e.key === 'ArrowUp') { e.preventDefault(); step(-1); return; }
+			if (e.key === 'Home') { e.preventDefault(); stops[0].focus(); return; }
+			if (e.key === 'End') { e.preventDefault(); stops[stops.length - 1].focus(); return; }
+			// Tab is a deliberate move out of the list rather than a mistake,
+			// so it closes without stealing the focus back.
+			if (e.key === 'Tab') hide(false);
+		});
+
+		list.addEventListener('scroll', fades);
+
+		[fadeUp, fadeDown].forEach(function (fade, i) {
+			if (!fade) return;
+			fade.addEventListener('click', function () {
+				list.scrollBy({ top: (i ? 3 : -3) * list.clientHeight / 5, behavior: 'smooth' });
+			});
+		});
+
+		document.addEventListener('pointerdown', function (e) {
+			if (open && !pick.contains(e.target)) hide(false);
+		});
+
+		document.addEventListener('focusin', function (e) {
+			if (open && !pick.contains(e.target)) hide(false);
+		});
+
+		// The bar changes height as it pins and the list is anchored to a
+		// measurement taken before that, so it closes rather than drifting off
+		// the label. Scrolling the list itself does not reach this handler.
+		window.addEventListener('scroll', function () { hide(false); }, { passive: true });
+		window.addEventListener('resize', function () { hide(false); });
+	}
 }());

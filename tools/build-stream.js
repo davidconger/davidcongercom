@@ -26,11 +26,17 @@
  *   --year <yyyy>  year to build; repeatable
  *   --photos N     maximum frames per show, default 3
  *   --limit N      only the first N shows, for a quick look
+ *   --index-only   rebuild galleries/index.htm alone
+ *   --nav-only     rewrite the year bar on the existing year pages and stop.
+ *                  A full run re-samples every frame and takes minutes; when
+ *                  only the navigation markup has changed there is nothing to
+ *                  re-sample, and the sampled caption tints already on those
+ *                  pages are left exactly as they are.
  */
 const fs = require('fs');
 const path = require('path');
 const { sampleColors, captionStyle } = require('./lib/caption');
-const { CHEVRON_LEFT, CHEVRON_RIGHT, topBar, homeLink, masthead, footer } = require('./lib/chrome');
+const { CHEVRON_LEFT, CHEVRON_RIGHT, CHEVRON_UP, CHEVRON_DOWN, topBar, homeLink, masthead, footer } = require('./lib/chrome');
 
 const ROOT = path.resolve(__dirname, '..');
 // The year pages live alongside the galleries they index, at
@@ -50,12 +56,13 @@ let limit = Infinity;
 // The year list is assembled from the year pages already on disk, so it can be
 // rebuilt on its own without re-sampling six thousand frames.
 const indexOnly = argv.includes('--index-only');
+const navOnly = argv.includes('--nav-only');
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === '--year') years.push(argv[++i]);
   else if (argv[i] === '--photos') maxPhotos = Number(argv[++i]);
   else if (argv[i] === '--limit') limit = Number(argv[++i]);
 }
-if (!years.length && !indexOnly) { console.error('Usage: node tools/build-stream.js --year 2019 [--year 2020] [--photos 3] | --index-only'); process.exit(1); }
+if (!years.length && !indexOnly && !navOnly) { console.error('Usage: node tools/build-stream.js --year 2019 [--year 2020] [--photos 3] | --index-only | --nav-only'); process.exit(1); }
 
 const escapeHtml = (s) => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -378,9 +385,48 @@ ${slides}
 		</li>`;
 }
 
-function renderYear(year, list, colors, available) {
+/* The year bar on a year page: an arrow either side and the year between them.
+
+   The arrows are the common move -- one year back, one year forward -- and they
+   say where you are without being asked. The jump to a distant year is the
+   rarer one, so it hides behind the year itself: clicking it opens a short list
+   of every year, positioned so the year you are already on stays exactly where
+   it was and the others appear around it. Nothing in the bar moves, which is
+   what makes it read as the same control opening rather than a new one arriving.
+
+   The year is still a plain link to the list of all years, so the bar works
+   with no JavaScript at all; the script takes the click over once it has wired
+   the list up. */
+function renderYearNav(year, available) {
   const prev = available.filter((y) => +y < +year).pop();
   const next = available.filter((y) => +y > +year).shift();
+
+  // Newest first, matching the order the index puts the years in.
+  const items = available.slice().reverse().map((y) => (y === year
+    ? `<li><a class="yearMenuItem is-current" href="../${y}/" aria-current="page">${y}</a></li>`
+    : `<li><a class="yearMenuItem" href="../${y}/">${y}</a></li>`)).join('\n\t\t\t\t\t');
+  return `<nav class="yearNav" aria-label="Year">
+		${prev
+      ? `<a class="yearStep" href="../${prev}/" rel="prev" aria-label="${prev}" title="${prev}">${CHEVRON_LEFT}</a>`
+      : `<span class="yearStep is-disabled" aria-hidden="true">${CHEVRON_LEFT}</span>`}
+		<div class="yearPick">
+			<a class="yearLabel" href="../" title="All years">${year}</a>
+			<div class="yearMenu" id="yearMenu" hidden>
+				<span class="yearMenuStep is-up" aria-hidden="true">${CHEVRON_UP}</span>
+				<ul class="yearMenuList">
+					${items}
+				</ul>
+				<span class="yearMenuStep is-down" aria-hidden="true">${CHEVRON_DOWN}</span>
+				<a class="yearMenuAll" href="../">All years</a>
+			</div>
+		</div>
+		${next
+      ? `<a class="yearStep" href="../${next}/" rel="next" aria-label="${next}" title="${next}">${CHEVRON_RIGHT}</a>`
+      : `<span class="yearStep is-disabled" aria-hidden="true">${CHEVRON_RIGHT}</span>`}
+	</nav>`;
+}
+
+function renderYear(year, list, colors, available) {
   const up = '../../';
 
   // A year page's description is worth more than "photographs from 2019" -- the
@@ -398,18 +444,10 @@ function renderYear(year, list, colors, available) {
 
 
 
-  // Arrows rather than a list of adjacent years: the control says which year
-  // you are in and which way to go, and nothing else. The year itself is the
-  // way out to the full list, which is the only other place to go from here.
-  const yearNav = `<nav class="yearNav" aria-label="Year">
-		${prev
-      ? `<a class="yearStep" href="../${prev}/" rel="prev" aria-label="${prev}" title="${prev}">${CHEVRON_LEFT}</a>`
-      : `<span class="yearStep is-disabled" aria-hidden="true">${CHEVRON_LEFT}</span>`}
-		<a class="yearLabel" href="../" title="All years">${year}</a>
-		${next
-      ? `<a class="yearStep" href="../${next}/" rel="next" aria-label="${next}" title="${next}">${CHEVRON_RIGHT}</a>`
-      : `<span class="yearStep is-disabled" aria-hidden="true">${CHEVRON_RIGHT}</span>`}
-	</nav>`;
+  // Arrows either side to step a year at a time, and the year itself as the way
+  // into any other year. The arrows answer "the one before this" without a
+  // click; the picker answers "take me to 2013" without twelve.
+  const yearNav = renderYearNav(year, available);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -644,6 +682,31 @@ function knownYears(building) {
 fs.mkdirSync(OUT, { recursive: true });
 const built = [];
 const data = new Map();
+
+/* Rewriting only the bar. The year pages are otherwise expensive to produce --
+   a full run measures the corner of every frame in the archive -- and the
+   caption tints those measurements produced are already sitting in the files.
+   Replacing the one block that changed leaves them untouched. */
+if (navOnly) {
+  const available = knownYears([]);
+  let changed = 0;
+  for (const year of available) {
+    const file = path.join(OUT, year, 'index.htm');
+    const before = fs.readFileSync(file, 'utf8');
+    const after = before.replace(
+      /<nav class="yearNav" aria-label="Year">[\s\S]*?<\/nav>/,
+      () => renderYearNav(year, available)
+    );
+    if (!/<nav class="yearNav"/.test(before)) { console.error(`  ! galleries/${year}/index.htm: year bar not found`); continue; }
+    if (after === before) { console.log(`  galleries/${year}/index.htm unchanged`); continue; }
+    fs.writeFileSync(file, after, 'utf8');
+    changed++;
+    console.log(`  rewrote the year bar on galleries/${year}/index.htm`);
+  }
+  console.log(`\n${changed} of ${available.length} year page(s) changed.`);
+  console.log(`\n  http://localhost:8099/galleries/`);
+  return;
+}
 
 if (!indexOnly) {
   for (const year of years) {

@@ -55,6 +55,10 @@
 
 :root {
 	--dc-topbar-h: 52px;
+	/* One row of the year picker. Tall enough to hold the year at the size the
+	   label carries it, so the row that opens over the label is the same shape
+	   as the label. */
+	--dc-yearrow: 34px;
 	/* How far the caption hangs below the photograph, and the shortest it is
 	   allowed to be. Between them these decide how much of the image the panel
 	   covers: min-height minus drop is what sits on the photograph, and that
@@ -455,6 +459,187 @@ a.yearStep:focus-visible {
 .yearStep.is-disabled {
 	color: #4a4a4a;
 	pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Year picker
+
+   The list of years opens out of the year itself rather than beside it. The
+   row for the year you are on is positioned over the label it came from, so
+   opening the list does not move the thing you just clicked: the other years
+   simply appear above and below it. Two years of context each way is enough to
+   show which direction is which without turning the bar into a menu.
+
+   Everything here is absolute or fixed-height on purpose. The row for the
+   current year has to line up with the label to within a pixel, and the script
+   measures that alignment after opening -- so anything that changes the menu's
+   height while it is open, such as a scroll hint appearing, would pull the list
+   off its anchor. The hints are therefore overlays on the list, not rows in it.
+   -------------------------------------------------------------------------- */
+
+.yearPick {
+	position: relative;
+	display: inline-flex;
+}
+
+.yearMenu {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	z-index: 60;
+	display: flex;
+	flex-direction: column;
+	min-width: 92px;
+	padding: 5px;
+	border-radius: 10px;
+	/* Nearly opaque, and darker than the bar it grows out of. The blur behind it
+	   keeps the photographs moving under the edges, but a list of small years
+	   has to be readable over a headline as well as over a picture, and at the
+	   bar's own 0.78 the masthead ghosts straight through the top rows. */
+	background-color: rgba(26, 26, 26, 0.97);
+	backdrop-filter: blur(18px) saturate(140%);
+	-webkit-backdrop-filter: blur(18px) saturate(140%);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+	opacity: 0;
+	transition: opacity 130ms ease;
+}
+
+/* display:flex above would otherwise defeat the attribute, and the attribute is
+   what keeps the list out of sight when the script has not run. */
+.yearMenu[hidden] {
+	display: none;
+}
+
+.yearMenu.is-open {
+	opacity: 1;
+}
+
+.yearMenuList {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	/* Five rows: the current year with two either side. */
+	max-height: calc(var(--dc-yearrow, 34px) * 5);
+	overflow-y: auto;
+	/* The list is a small thing floating over a long page; without this, running
+	   out of years hands the wheel straight to the page behind it. */
+	overscroll-behavior: contain;
+	/* A scrollbar would take width out of the rows and pull the year off centre
+	   from the label above it. The fades at either end say the same thing. */
+	scrollbar-width: none;
+}
+
+.yearMenuList::-webkit-scrollbar {
+	width: 0;
+	height: 0;
+}
+
+.yearMenuItem,
+.yearMenuAll {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: var(--dc-yearrow, 34px);
+	border-radius: 6px;
+	white-space: nowrap;
+	text-decoration: none;
+	transition: color 140ms ease, background-color 140ms ease;
+}
+
+/* Set at the same size and tracking as the label, so the row that lands on the
+   label is the label. The site-wide a:hover rule outranks a single class, so
+   every state is stated rather than inherited. */
+.yearMenuItem,
+.yearMenuItem:link,
+.yearMenuItem:visited,
+.yearMenuItem:active {
+	font-family: var(--dc-font-display);
+	font-size: 19px;
+	letter-spacing: 3px;
+	/* Tracking adds a gap after the last digit, which reads as the year sitting
+	   left of centre. Half of it back closes that. */
+	text-indent: 3px;
+	color: #8a8a8a;
+	text-decoration: none;
+}
+
+.yearMenuItem:hover,
+.yearMenuItem:focus-visible {
+	color: var(--dc-fg, #ffffff);
+	background-color: rgba(255, 255, 255, 0.08);
+	text-decoration: none;
+}
+
+/* The year you are on. It is not a destination, but it is the anchor the whole
+   list is positioned around, so it reads at full strength and the rest sit
+   back from it. */
+.yearMenuItem.is-current,
+.yearMenuItem.is-current:link,
+.yearMenuItem.is-current:visited {
+	color: var(--dc-fg, #f2f2f2);
+}
+
+.yearMenuItem:focus-visible,
+.yearMenuAll:focus-visible {
+	outline: 2px solid #0066ff;
+	outline-offset: -2px;
+}
+
+/* The way out to every year at once, kept below a hairline so it reads as a
+   different kind of destination from the years above it. */
+.yearMenuAll,
+.yearMenuAll:link,
+.yearMenuAll:visited,
+.yearMenuAll:active {
+	height: 30px;
+	margin-top: 5px;
+	padding-top: 5px;
+	border-top: 1px solid rgba(255, 255, 255, 0.11);
+	border-radius: 0 0 6px 6px;
+	font-size: 12px;
+	letter-spacing: 1.4px;
+	color: #8a8a8a;
+	text-decoration: none;
+}
+
+.yearMenuAll:hover,
+.yearMenuAll:focus-visible {
+	color: var(--dc-fg, #ffffff);
+	background-color: rgba(255, 255, 255, 0.06);
+	text-decoration: none;
+}
+
+/* There are more years this way. A strip of its own above and below the list
+   rather than a badge floating over the end rows: overlaid, it sat on the very
+   digits it was pointing at. It keeps its height whether or not it has anything
+   to say, because the list is anchored to a measurement of where its rows are
+   and a strip that appeared would push them off the label. */
+.yearMenuStep {
+	flex: 0 0 auto;
+	height: 17px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #cfcfcf;
+	cursor: pointer;
+	opacity: 1;
+	transition: opacity 160ms ease;
+}
+
+/* Nothing that way. It stops taking clicks as well as light, so a dead arrow
+   never swallows one. */
+.yearMenuStep.is-off {
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* The label sheds its size when the bar pins, and the list has to follow it or
+   the year would change size as the list opens. */
+.yearBar.is-stuck .yearMenuItem {
+	font-size: 15px;
+	letter-spacing: 2.2px;
+	text-indent: 2.2px;
 }
 
 /* Fixed 640px tracks, not fractions of the container.
