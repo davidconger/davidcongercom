@@ -221,6 +221,121 @@
 	var yearBar = document.querySelector('.yearBar');
 	var barHeight = topBar ? topBar.offsetHeight : 52;
 
+	/* ----------------------------------------------------------------------
+	   What the collapsed bar says on a gallery page
+
+	   Everywhere else the bar takes over the masthead, because the masthead is
+	   what scrolled away. On a gallery the thing that scrolled away is the
+	   show, and by then the site's identity has already been established twice
+	   over -- by the home icon, the crumb, and the page you came from. So the
+	   bar carries the show instead: who played, where, and when.
+
+	   The venue keeps only its own name. "WaMu Theater, Seattle, WA" is three
+	   facts, and two of them are the same on almost every page here.
+	   ---------------------------------------------------------------------- */
+
+	function lastYear(text) {
+		var found = String(text).match(/\b(?:19|20)\d{2}\b/g);
+		return found ? found[found.length - 1] : '';
+	}
+
+	function venueName(text) {
+		return String(text).split(',')[0].trim();
+	}
+
+	/* A line is the date if it names a month and carries a year. Both are
+	   required: "Marymoor Park, Redmond, WA" names no month, and "Deck The
+	   Hall Ball 2011" names no month either. */
+	var MONTH = /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i;
+
+	function isDateLine(line) {
+		return MONTH.test(line) && !!lastYear(line);
+	}
+
+	/* The block's lines in order, breaking at every <br>, dropping the title
+	   where there is one, and stopping at the small print where there is one. */
+	function looseLines(details, dropEl, stopEl) {
+		var lines = [];
+		var line = '';
+		var kids = details.childNodes;
+		for (var i = 0; i < kids.length; i++) {
+			var node = kids[i];
+			if (stopEl && node === stopEl) break;
+			if (node === dropEl || (node.nodeType === 1 && node.tagName === 'BR')) {
+				lines.push(line.trim());
+				line = '';
+				continue;
+			}
+			line += node.textContent;
+		}
+		lines.push(line.trim());
+		return lines.filter(Boolean);
+	}
+
+	/* The 2009-2012 pages predate the generator that gave each fact its own
+	   element. There the block is loose text broken by <br>, in a fixed order:
+	   the act, sometimes the tour, then the venue -- and after that a
+	   small-print span holding the supporting acts and the date. That span is
+	   the seam. Everything before it ends on the venue, and the year is the
+	   last one inside it, which is how "Cage The Elephant at Key Arena" comes
+	   out of a page whose small print lists six other bands and whose tour line
+	   is called Deck The Hall Ball 2011. */
+	function showParts(details) {
+		var titleEl = details.querySelector('#title');
+		var venueEl = details.querySelector('#venue');
+		var dateEl = details.querySelector('#date');
+		var small = details.querySelector('.style1');
+
+		var artist = titleEl ? titleEl.textContent.trim() : '';
+		var venue = venueEl ? venueName(venueEl.textContent) : '';
+		var year = dateEl ? lastYear(dateEl.textContent) : '';
+
+		if (!artist || !venue || !year) {
+			var lines = looseLines(details, titleEl, small);
+
+			// A handful of pages never had their act promoted to a heading and
+			// still open with it as bare text, which puts it on the first line.
+			if (!artist) artist = lines.shift() || '';
+			if (!year) year = lastYear(small ? small.textContent : details.textContent);
+
+			if (!venue && lines.length) {
+				var last = lines[lines.length - 1];
+				if (!small && isDateLine(last)) {
+					// No small print to stop at, so the date is still in hand
+					// and the venue is the line above it.
+					if (!year) year = lastYear(last);
+					venue = lines.length > 1 ? venueName(lines[lines.length - 2]) : '';
+				} else {
+					venue = venueName(last);
+				}
+			}
+		}
+
+		if (!artist || (!venue && !year)) return null;
+		return {
+			artist: artist,
+			rest: (venue ? 'at ' + venue : '') + (venue && year ? ', ' : '') + year
+		};
+	}
+
+	var details = document.querySelector('.galleryPage #gallery #details');
+	var brand = document.querySelector('.brandCompact');
+	var parts = details && brand ? showParts(details) : null;
+
+	if (parts) {
+		var name = document.createElement('span');
+		name.className = 'brandCompactName';
+		name.textContent = parts.artist;
+
+		brand.textContent = '';
+		brand.appendChild(name);
+		if (parts.rest) brand.appendChild(document.createTextNode(' ' + parts.rest));
+
+		// Narrow windows clip the line with an ellipsis, so the whole of it
+		// stays available to a pointer.
+		brand.title = (parts.artist + ' ' + parts.rest).trim();
+	}
+
 	// The bar carries no fill until it collapses, so the masthead scrolls all
 	// the way to the top of the window rather than vanishing 50px early behind
 	// it. The handover happens when the name itself starts to leave: the line
