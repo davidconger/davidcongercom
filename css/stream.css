@@ -236,6 +236,7 @@ body {
 
 .streamHome {
 	justify-content: flex-start;
+	gap: 11px;
 }
 
 .streamSocial .socialLink {
@@ -1101,6 +1102,29 @@ a.yearStep:focus-visible {
 	outline: 2px solid #0066ff;
 	outline-offset: 4px;
 	border-radius: 2px;
+}
+
+/* Home and the crumb were separated by nothing but whitespace, which reads as
+   two unrelated controls rather than a path. A chevron says "one step down
+   from here" -- the same thing the year arrows either side of this bar say,
+   drawn the same way -- where a pipe would only say the two are siblings.
+
+   It is generated content rather than markup so that it costs nothing on
+   11,000 pages, and it carries an empty alt string so a screen reader announces
+   the link as "2020" and not "angle bracket 2020". The plain `content` above
+   is the fallback for browsers that do not know the alt syntax; they get the
+   chevron, just without the silencing. Its colour is set here and never
+   changed, so it stays put while the crumb itself lights up on hover. */
+.streamHome .crumbYear::before {
+	content: "\203A";
+	content: "\203A" / "";
+	display: inline-block;
+	margin-right: 11px;
+	color: #4a4a4a;
+	font-family: var(--dc-font-display);
+	font-size: 17px;
+	letter-spacing: 0;
+	vertical-align: -1px;
 }
 
 @media (max-width: 560px) {
