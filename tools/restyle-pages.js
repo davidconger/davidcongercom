@@ -36,8 +36,14 @@ const FONT = "<link href='https://fonts.googleapis.com/css?family=Hind:400,600' 
 const SECTIONS = ['catalog', 'festivals', 'other', 'radio', 'tearsheets'];
 
 /* The two /you/ landing pages have the same old header as the sections and no
-   #gallery, so restyle-you.js cannot see them. */
-const EXTRA = ['you/index.htm', 'you/previous.htm'];
+   #gallery, so restyle-you.js cannot see them. The four pages under galleries/
+   are hubs and listings rather than galleries, so neither gallery restyler
+   claims them either. */
+const EXTRA = [
+  'you/index.htm', 'you/previous.htm',
+  'galleries/featured.htm', 'galleries/index_old.htm',
+  'galleries/davematthewscaravan.htm', 'galleries/doormattstweetup.htm',
+];
 
 /* index.htm is the home page and already current. The Pinterest file exists
    only to carry a verification tag and is not a page anyone navigates to. */
