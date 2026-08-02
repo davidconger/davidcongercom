@@ -66,18 +66,44 @@
 		hold(show);
 	});
 
+	// Somewhere a keystroke would land in text rather than on the page.
+	function isTyping(node) {
+		if (!node || !node.tagName) return false;
+		if (node.isContentEditable) return true;
+		return /^(INPUT|TEXTAREA|SELECT)$/.test(node.tagName);
+	}
+
 	// Left/right within a rotator, so it is usable without a mouse.
 	document.addEventListener('keydown', function (e) {
 		if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+		// Alt+Left is history, and the other combinations belong to the browser.
+		if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+		if (isTyping(e.target)) return;
+
+		var step = e.key === 'ArrowRight' ? 1 : -1;
 		var dot = e.target.closest ? e.target.closest('.showDots button') : null;
-		if (!dot) return;
-		var dots = dot.parentNode.querySelectorAll('button');
-		var i = Number(dot.getAttribute('data-index')) || 0;
-		var next = (i + (e.key === 'ArrowRight' ? 1 : dots.length - 1)) % dots.length;
+
+		if (dot) {
+			var dots = dot.parentNode.querySelectorAll('button');
+			var i = Number(dot.getAttribute('data-index')) || 0;
+			var next = (i + step + dots.length) % dots.length;
+			e.preventDefault();
+			select(dot.closest('.show'), next);
+			dots[next].focus();
+			hold(dot.closest('.show'));
+			return;
+		}
+
+		/* The home page is one photograph, so the arrow keys can belong to it
+		   outright -- there is nothing else on the page they could mean. A year
+		   page carries eighty shows and no such answer, so there the arrows stay
+		   with the browser and only the focused dot strip above responds. */
+		var home = document.querySelector('.homeGrid .show');
+		if (!home || home.hasAttribute('hidden')) return;
+		if (home.querySelectorAll('.showSlide').length < 2) return;
 		e.preventDefault();
-		select(dot.closest('.show'), next);
-		dots[next].focus();
-		hold(dot.closest('.show'));
+		advanceBy(home, step);
+		hold(home);
 	});
 
 	/* ----------------------------------------------------------------------
