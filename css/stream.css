@@ -1372,7 +1372,7 @@ main.prose.pageStream {
 
 .youPage #gallery {
 	max-width: 1308px;
-	padding: 0 0 60px;
+	padding: 0 0 16px;
 }
 
 .youPage #gallery #details {
@@ -1383,8 +1383,9 @@ main.prose.pageStream {
 
 .youPage #gallery #details #title {
 	display: block;
-	margin-bottom: 6px;
-	font-size: 26px;
+	margin-bottom: 4px;
+	font-size: 22px;
+	line-height: 1.3;
 	font-weight: 600;
 	letter-spacing: 2.6px;
 	color: #f2f2f2;
@@ -1410,11 +1411,21 @@ main.prose.pageStream {
 	display: none;
 }
 
-/* The paragraph explaining how to save the photo, and the page navigation. */
+/* The paragraph explaining how to save the photo, and the page navigation.
+   Both used to be spaced by empty lines written into the markup; the space is
+   set here now, so it can be tuned in one place. */
 .youPage #gallery > div {
 	font-size: 14px;
 	line-height: 1.6;
 	color: #a8a8a8;
+}
+
+.youPage #gallery .youIntro {
+	margin-top: 14px;
+}
+
+.youPage #gallery > div.younavigation {
+	margin-top: 22px;
 }
 
 .youPage .younavigation {
@@ -1518,7 +1529,7 @@ main.prose.pageStream {
 
 @media (max-width: 720px) {
 	.youPage #gallery #details #title {
-		font-size: 21px;
+		font-size: 19px;
 		letter-spacing: 2px;
 	}
 
