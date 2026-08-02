@@ -213,7 +213,7 @@ body {
 .streamFooter {
 	color: #8a8a8a;
 	letter-spacing: 0.9px;
-	padding-top: 44px;
+	padding-top: 30px;
 }
 
 /* --------------------------------------------------------------------------
@@ -1243,8 +1243,15 @@ a.yearStep:focus-visible {
    same type and spacing the rest of the site uses.
    -------------------------------------------------------------------------- */
 
-.pageStream {
-	padding-bottom: 60px;
+/* The class is on the body and on the main element both, so an unqualified
+   padding here would be spent twice: once between the content and the footer
+   and again below the footer. The footer sets its own space above. */
+main.pageStream {
+	padding-bottom: 8px;
+}
+
+body.pageStream {
+	padding-bottom: 26px;
 }
 
 /* .stream sets a 1308px measure, which is right for a grid of photographs and
@@ -1642,8 +1649,20 @@ main.prose.pageStream {
 	color: #8f8f8f;
 }
 
+/* The same offer to look further back, at the foot of the grid rather than
+   above it, where it is the last thing on a long page and has to carry a
+   little more weight to be seen. */
+.pageStream .catalogOutro {
+	padding-top: 22px;
+	font-size: 15px;
+	color: #9a9a9a;
+	text-align: center;
+}
+
 .pageStream #catalogNav a:link,
 .pageStream #catalogNav a:visited,
+.pageStream .catalogOutro a:link,
+.pageStream .catalogOutro a:visited,
 .pageStream #dcCatalogNav a:link,
 .pageStream #dcCatalogNav a:visited,
 .pageStream #dcListingNav a:link,
@@ -1656,6 +1675,8 @@ main.prose.pageStream {
 
 .pageStream #catalogNav a:hover,
 .pageStream #catalogNav a:focus,
+.pageStream .catalogOutro a:hover,
+.pageStream .catalogOutro a:focus,
 .pageStream #dcCatalogNav a:hover,
 .pageStream #dcCatalogNav a:focus,
 .pageStream #dcListingNav a:hover,
@@ -1676,8 +1697,13 @@ main.prose.pageStream {
    to the older ones -- so the breaks between them only add empty lines. Scoped
    to the breaks that follow those blocks: you/previous.htm puts its whole event
    list inside this same container and its breaks are load-bearing. */
+/* The grid starts 30px below the last line of this block: 22 here and 8 on the
+   list. Above it the site header and the stream have already spent 34px of
+   their own padding before this block begins, so the surplus comes back off
+   the top to frame the heading evenly. */
 .pageStream .catalogIntro {
-	padding: 4px 0 22px;
+	margin-top: -4px;
+	padding: 0 0 22px;
 	text-align: center;
 }
 

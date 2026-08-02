@@ -601,7 +601,10 @@ hr {
    Footer
    -------------------------------------------------------------------------- */
 
+/* A paragraph doing a footer's job, so its default margins are an accident
+   rather than a decision. The padding below is the deliberate part. */
 .siteFooter {
+	margin: 0;
 	font-size: small;
 	padding: 20px 10px;
 }
