@@ -1234,3 +1234,119 @@ a.yearStep:focus-visible {
 		letter-spacing: 2.2px;
 	}
 }
+/* --------------------------------------------------------------------------
+   Section pages
+
+   Everything outside the galleries and /you/: the catalogs, the by-date and
+   by-artist listings, the festival and radio pages, About and the 404. They
+   share the chrome now, so all that is left here is to give their content the
+   same type and spacing the rest of the site uses.
+   -------------------------------------------------------------------------- */
+
+.pageStream {
+	padding-bottom: 60px;
+}
+
+/* .stream sets a 1308px measure, which is right for a grid of photographs and
+   far too wide for a column of text. Reading pages take it back. */
+main.prose.pageStream {
+	max-width: 760px;
+	padding-top: 8px;
+}
+
+.prose.pageStream h1 {
+	margin: 0 0 18px;
+	font-size: 26px;
+	font-weight: 600;
+	letter-spacing: 0.4px;
+	color: #f2f2f2;
+}
+
+.prose.pageStream h2 {
+	margin: 34px 0 6px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 2.4px;
+	text-transform: uppercase;
+	color: #9a9a9a;
+}
+
+.prose.pageStream p {
+	margin: 0 0 14px;
+	font-size: 15px;
+	line-height: 1.65;
+	color: #cfcfcf;
+}
+
+.prose.pageStream .orgName {
+	margin: 12px 0 2px;
+	font-size: 16px;
+	font-weight: 600;
+	color: #ececec;
+}
+
+/* Station and format lists. x-small was unreadable against this background. */
+.prose.pageStream .fine {
+	margin: 0 0 4px;
+	font-size: 13px;
+	line-height: 1.55;
+	color: #8f8f8f;
+}
+
+.prose.pageStream .plainList {
+	margin: 4px 0 16px;
+	font-size: 15px;
+	line-height: 1.7;
+	color: #cfcfcf;
+}
+
+.prose.pageStream ul:not(.plainList) {
+	margin: 0 0 16px;
+	padding-left: 20px;
+	font-size: 15px;
+	line-height: 1.8;
+	color: #cfcfcf;
+}
+
+/* The client logos are white artwork on transparent, so they sit a little hot
+   against a near-black page. Holding them just under full strength lets the
+   headings stay the brightest thing in the column. */
+.prose.pageStream .clientLogos {
+	gap: 18px;
+	margin: 14px 0 6px;
+	opacity: 0.72;
+	transition: opacity 200ms ease;
+}
+
+.prose.pageStream .clientLogos:hover {
+	opacity: 1;
+}
+
+.prose.pageStream hr {
+	margin: 30px 0 18px;
+	border: 0;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prose.pageStream .memoriam {
+	color: #8f8f8f;
+	font-style: italic;
+}
+
+/* site.css:96 `a:hover` is (0,1,1) and beats a single class, so every state has
+   to be restated or the hover reverts to the old blue with an underline. */
+.prose.pageStream a:link,
+.prose.pageStream a:visited {
+	color: #dcdcdc;
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 255, 255, 0.34);
+	text-underline-offset: 4px;
+}
+
+.prose.pageStream a:hover,
+.prose.pageStream a:focus,
+.prose.pageStream a:active {
+	color: #ffffff;
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 255, 255, 0.75);
+}
