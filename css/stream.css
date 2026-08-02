@@ -1537,7 +1537,7 @@ main.prose.pageStream {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: center;
-	gap: 26px 20px;
+	gap: 39px 20px;
 	padding-top: 8px;
 }
 
@@ -1570,8 +1570,15 @@ main.prose.pageStream {
 }
 
 /* The <br> after each image is what the old generator used for the gap the
-   margin now provides. */
-.pageStream #catalog .catalogList li img + br {
+   margin now provides. The breaks between the event, the venue and the date do
+   the same thing to no purpose at all: those three are blocks, so each break
+   adds an empty line on top of the line the block already occupies, and the
+   caption reads as three separate things rather than one. Hidden by tag name
+   rather than wholesale, because the year catalogs under /catalog/ write their
+   caption as a single run of text where the break is load-bearing. */
+.pageStream #catalog .catalogList li img + br,
+.pageStream #catalog .catalogList li event + br,
+.pageStream #catalog .catalogList li venue + br {
 	display: none;
 }
 
@@ -1612,7 +1619,7 @@ main.prose.pageStream {
 /* The heading block above the grid on the /you/ index and the year catalogs. */
 .pageStream .pageHeader {
 	display: block;
-	margin-bottom: 10px;
+	margin-bottom: 6px;
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 2.6px;
@@ -1621,7 +1628,8 @@ main.prose.pageStream {
 }
 
 .pageStream .yearHeader {
-	font-size: 30px;
+	display: block;
+	font-size: 21px;
 	font-weight: 600;
 	letter-spacing: 1px;
 	color: #f2f2f2;
@@ -1664,12 +1672,24 @@ main.prose.pageStream {
 	text-transform: uppercase;
 	color: #9a9a9a;
 }
+/* The heading is a stack of blocks -- section, span of years, and the way back
+   to the older ones -- so the breaks between them only add empty lines. Scoped
+   to the breaks that follow those blocks: you/previous.htm puts its whole event
+   list inside this same container and its breaks are load-bearing. */
 .pageStream .catalogIntro {
 	padding: 4px 0 22px;
 	text-align: center;
 }
-/* Two-line event names would otherwise push the venue and date out of step
-   with the rest of the row. */
-.pageStream #catalog .catalogList li event {
-	min-height: 2.6em;
+
+.pageStream .catalogIntro .pageHeader + br,
+.pageStream .catalogIntro .pageHeader + br + br,
+.pageStream .catalogIntro .yearHeader + br,
+.pageStream .catalogIntro #catalogNav + br,
+.pageStream .catalogIntro #catalogNav + br + br {
+	display: none;
+}
+
+.pageStream .catalogIntro #catalogNav {
+	display: block;
+	margin-top: 2px;
 }
