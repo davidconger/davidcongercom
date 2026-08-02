@@ -676,4 +676,24 @@ if (indexHtml) {
   console.log(`  wrote galleries/index.htm (${(indexHtml.length / 1024).toFixed(0)} KB)`);
 }
 
+/* The home page sends "Concert & Event Photos" straight to the newest year
+   rather than to the list of years: someone arriving at the front door wants
+   photographs, not a menu, and the year they almost certainly want is the last
+   one shot. Retargeting it here means adding a year folder moves the link on
+   its own, instead of leaving the front page pointing at a year that is no
+   longer the newest. */
+const newest = knownYears(built).slice(-1)[0];
+if (newest) {
+  const home = path.join(ROOT, 'index.htm');
+  const before = fs.readFileSync(home, 'utf8');
+  const after = before.replace(
+    /(<a href=")galleries\/(?:\d{4}\/)?(">Concert &amp; Event Photos<\/a>)/,
+    `$1galleries/${newest}/$2`
+  );
+  if (after !== before) {
+    fs.writeFileSync(home, after, 'utf8');
+    console.log(`  pointed the home page at galleries/${newest}/`);
+  }
+}
+
 console.log(`\n  http://localhost:8099/galleries/`);
