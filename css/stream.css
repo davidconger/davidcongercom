@@ -1010,10 +1010,12 @@ a.yearStep:focus-visible {
 
 .galleryPage:not(.flatGallery) #gallery #details span {
 	display: block;
+	line-height: 1.5;
 }
 
 .galleryPage #gallery #details #title {
-	font-size: 30px;
+	margin-bottom: 4px;
+	font-size: 26px;
 	font-weight: 600;
 	letter-spacing: 3px;
 	line-height: 1.2;
@@ -1021,21 +1023,18 @@ a.yearStep:focus-visible {
 }
 
 .galleryPage #gallery #details #tour {
-	margin-top: 9px;
 	font-size: 14px;
 	letter-spacing: 2px;
 	color: #a6a6a6;
 }
 
 .galleryPage #gallery #details #venue {
-	margin-top: 9px;
 	font-size: 14px;
 	letter-spacing: 1.6px;
 	color: #8a8a8a;
 }
 
 .galleryPage #gallery #details #date {
-	margin-top: 6px;
 	font-size: 12px;
 	letter-spacing: 1.8px;
 	text-transform: uppercase;
@@ -1110,7 +1109,7 @@ a.yearStep:focus-visible {
 	}
 
 	.galleryPage #gallery #details #title {
-		font-size: 23px;
+		font-size: 21px;
 		letter-spacing: 2.2px;
 	}
 
@@ -1139,14 +1138,14 @@ a.yearStep:focus-visible {
 .flatGallery #gallery #details {
 	font-size: 14px;
 	letter-spacing: 1.4px;
-	line-height: 1.9;
+	line-height: 1.5;
 	color: #8a8a8a;
 }
 
 .flatGallery #gallery #details #title {
 	display: block;
-	margin-bottom: 8px;
-	font-size: 30px;
+	margin-bottom: 4px;
+	font-size: 26px;
 	font-weight: 600;
 	letter-spacing: 3px;
 	line-height: 1.2;
@@ -1230,7 +1229,7 @@ a.yearStep:focus-visible {
 	}
 
 	.flatGallery #gallery #details #title {
-		font-size: 23px;
+		font-size: 21px;
 		letter-spacing: 2.2px;
 	}
 }
