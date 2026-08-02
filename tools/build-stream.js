@@ -628,6 +628,17 @@ ${footer()}
 `;
 }
 
+/* Which years exist, not which are being rebuilt. A run for a single year
+   still has to know what sits either side of it: passing the run's own list
+   here is what left 2020 with both arrows greyed out and no way back to 2019. */
+function knownYears(building) {
+  const onDisk = fs.readdirSync(OUT, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && /^\d{4}$/.test(e.name)
+      && fs.existsSync(path.join(OUT, e.name, 'index.htm')))
+    .map((e) => e.name);
+  return [...new Set([...onDisk, ...building])].sort();
+}
+
 /* --------------------------------------------------------------------- run */
 
 fs.mkdirSync(OUT, { recursive: true });
@@ -649,10 +660,11 @@ if (!indexOnly) {
   console.log(`\nsampling caption colours for ${allPaths.length} frame(s)...`);
   const colors = sampleColors(allPaths);
 
+  const available = knownYears(built);
   for (const year of built) {
     const dir = path.join(OUT, year);
     fs.mkdirSync(dir, { recursive: true });
-    const html = renderYear(year, data.get(year), colors, built);
+    const html = renderYear(year, data.get(year), colors, available);
     fs.writeFileSync(path.join(dir, 'index.htm'), html, 'utf8');
     console.log(`  wrote galleries/${year}/index.htm (${(html.length / 1024).toFixed(0)} KB)`);
   }
