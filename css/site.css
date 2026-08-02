@@ -519,6 +519,69 @@ hr {
 }
 
 /* --------------------------------------------------------------------------
+   Headings on the hand-authored pages
+
+   The catalog, the festivals, /other/, the tearsheets and the list pages at
+   the root have always drawn their title as a styled <span> or a bold <p>.
+   Those elements are now <h1>, which is what they were all along, and nothing
+   about them may look different for it -- so the only job here is to cancel
+   the margin, size and weight a browser gives a heading by default. Every
+   visible property still comes from the class or id the element already had,
+   or from a style attribute written alongside the tag.
+   -------------------------------------------------------------------------- */
+h1#catalogTitle,
+h1#listingTitle,
+h1.pageHeader,
+h1.headerTextMain {
+	margin: 0;
+}
+
+/* The title of a legacy caption block: the first line of a centred paragraph,
+   with the place or subject on it and the date underneath. It has no look of
+   its own -- it inherits the paragraph it came out of, and anything specific
+   to the page stays on the span or the style attribute it always had. */
+.legacyTitle {
+	margin: 0;
+	font-size: 1em;
+	font-weight: normal;
+	line-height: inherit;
+}
+
+/* A title that was a paragraph in its own right rather than a line inside one.
+   It keeps a paragraph's margins, because the space above and below it was
+   coming from the <p> that is no longer there. */
+.legacyHeading {
+	margin: 1em 0;
+	font-size: 1em;
+	font-weight: normal;
+	line-height: inherit;
+}
+
+/* A heading may not sit inside a <p>, so the paragraphs that opened with one
+   are now divs and need the margins a paragraph would have given them. */
+.legacyCaption {
+	margin: 1em 0;
+}
+
+/* Read by a screen reader, drawn for nobody. Used where the page announces
+   itself with a banner image or a grid of photographs instead of words, and
+   where a heading names a section the surrounding chrome already makes plain.
+   Clipped rather than moved off-screen so a focused element inside it does not
+   scroll the viewport sideways. */
+.srOnly {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* --------------------------------------------------------------------------
    Featured photographs mosaic (galleries/featured.htm)
 
    Replaces two fixed 650px tables of mixed 150x100 and 100x150 thumbnails.

@@ -1,13 +1,23 @@
 /**
- * Marks superseded copies of live pages "noindex".
+ * Marks pages that should not be listed by a search engine.
  *
- * you/<year>/Old/ holds a second copy of nineteen events that are also
- * published at their proper path. Nothing links to it, and build-sitemap.js
- * leaves it out, but a copy that is merely absent from the sitemap is still
- * indexable the moment anything points at it -- and 637 pages carrying the same
- * titles, the same photographs and the same descriptions as the live events is
- * exactly the duplication a search engine penalises. Before this, those copies
- * accounted for 456 of the site's 476 colliding titles.
+ * Two kinds of page qualify:
+ *
+ *   - Superseded copies. you/<year>/Old/ holds a second copy of nineteen events
+ *     that are also published at their proper path. Nothing links to it, and
+ *     build-sitemap.js leaves it out, but a copy that is merely absent from the
+ *     sitemap is still indexable the moment anything points at it -- and 637
+ *     pages carrying the same titles, the same photographs and the same
+ *     descriptions as the live events is exactly the duplication a search
+ *     engine penalises. Before this, those copies accounted for 456 of the
+ *     site's 476 colliding titles.
+ *
+ *   - Templates and abandoned drafts. A file whose name begins with "!" is a
+ *     blank the generators copy from, and galleries/index_old.htm is the
+ *     gallery list the year stream replaced. Neither is a page anybody should
+ *     arrive at. build-sitemap.js skips !template *directories* but not a
+ *     stray template file sitting beside real pages, and it drops anything
+ *     carrying this tag -- so marking them is enough to keep them out.
  *
  * The URLs keep working. "noindex, follow" only says do not list this page,
  * while still crediting the links it carries, so nothing that already points
@@ -22,19 +32,26 @@ const ROOT = path.resolve(__dirname, '..');
 const dry = process.argv.includes('--dry');
 
 /** Superseded copies: same content, published elsewhere under its own URL. */
-const SUPERSEDED = [/^you\/\d{4}\/old\//i];
+const SUPERSEDED = [
+  /^you\/\d{4}\/old\//i,
+  /(^|\/)!/,
+  /(^|\/)0000(\/|$)/,
+  /^galleries\/index_old\.htm$/i,
+];
 
 const TAG = '<meta name="robots" content="noindex, follow">';
+
+const SKIP_DIRS = new Set(['.git', 'node_modules', 'tools', '_proto', 'you_old', '1cnf', '1pvt', 'davidconger_backup']);
 
 const files = [];
 (function collect(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === '.git' || entry.name === 'node_modules') continue;
+    if (SKIP_DIRS.has(entry.name)) continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) collect(full);
     else if (/\.html?$/i.test(entry.name)) files.push(full);
   }
-})(path.join(ROOT, 'you'));
+})(ROOT);
 
 let changed = 0;
 let already = 0;
@@ -53,6 +70,7 @@ for (const file of files) {
   if (out === html) { failed.push(rel); continue; }
 
   changed++;
+  console.log(`      + ${rel}`);
   if (!dry) fs.writeFileSync(file, out);
 }
 

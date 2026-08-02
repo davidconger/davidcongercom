@@ -388,6 +388,21 @@ body {
 	transition: font-size 240ms ease, letter-spacing 240ms ease, color 180ms ease;
 }
 
+/* A year page's heading is the year itself, so the year carries the <h1>
+   rather than a second copy of it being hidden somewhere off-screen. The
+   element exists only to hold the tag: it takes no size of its own, and the
+   year link keeps the identical box the picker measures when it places the
+   menu against it. The rest of the heading -- "Concert & Event Photos" -- is
+   read but not drawn, because the bar already sits under a masthead that says
+   so and repeating it would only crowd the photographs. */
+.yearHeading {
+	display: inline-flex;
+	margin: 0;
+	padding: 0;
+	font: inherit;
+	font-weight: inherit;
+}
+
 /* On a year page the label is also the way out to the list of every year. It
    gives no sign of that at rest -- the bar has two arrows in it already, and a
    third piece of obvious chrome would make the band busier than the
@@ -418,6 +433,21 @@ a.yearLabel:focus-visible {
    so it needs room for "2009-2020" and has nowhere to link to. */
 .yearLabel.is-static {
 	min-width: 0;
+}
+
+/* On the index the label is not a link and not a control -- it is simply the
+   name of the page, so it is the <h1>. Only the heading defaults a browser
+   would add need clearing; every visible property still comes from .yearLabel. */
+h1.yearLabel {
+	margin: 0;
+	padding: 0;
+	font-size: 19px;
+	font-weight: inherit;
+	line-height: inherit;
+}
+
+.yearBar.is-stuck h1.yearLabel {
+	font-size: 15px;
 }
 
 .yearBar.is-stuck .yearLabel {

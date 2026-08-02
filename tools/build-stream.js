@@ -455,7 +455,7 @@ function renderYearNav(year, available) {
       ? `<a class="yearStep" href="../${prev}/" rel="prev" aria-label="${prev}" title="${prev}">${CHEVRON_LEFT}</a>`
       : `<span class="yearStep is-disabled" aria-hidden="true">${CHEVRON_LEFT}</span>`}
 		<div class="yearPick">
-			<a class="yearLabel" href="../" title="All years">${year}</a>
+			<h1 class="yearHeading"><a class="yearLabel" href="../" title="All years">${year}</a><span class="srOnly"> Concert &amp; Event Photos</span></h1>
 			<div class="yearMenu" id="yearMenu" hidden>
 				<span class="yearMenuStep is-up" aria-hidden="true">${CHEVRON_UP}</span>
 				<ul class="yearMenuList">
@@ -692,7 +692,7 @@ ${masthead()}
 
 <div class="yearBar">
 	<nav class="yearNav" aria-label="Year">
-		<span class="yearLabel is-static">Concert &amp; Event Photo Galleries</span>
+		<h1 class="yearLabel is-static">Concert &amp; Event Photo Galleries</h1>
 	</nav>
 </div>
 
