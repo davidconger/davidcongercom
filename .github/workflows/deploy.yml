@@ -52,7 +52,7 @@ jobs:
           console.log('sitemap.xml OK, '+n+' URLs');"
 
       - name: Check for broken references
-        run: node tools/check-links.js . --max-broken 4100
+        run: node tools/check-links.js . --max-broken 140
 
       - name: Deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -73,3 +73,9 @@ jobs:
             **/tools/**
             **/*.md
             _proto/**
+            # Superseded duplicate of you/2023. Nothing links into it and it is
+            # not in the sitemap, so shipping its 1,788 files would only spend
+            # 148 MB of the App Service quota on unreachable copies. Listing it
+            # here also means the sync never treats the server's copy as
+            # something to delete.
+            you/2023/Old/**

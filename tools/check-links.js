@@ -41,6 +41,20 @@ const siteRoot = path.resolve(positional[0] || '.');
  *  contain {ROOT}-style placeholders that are not real paths. */
 const SKIP_DIRS = new Set(['1cnf', '1pvt', '.git', 'node_modules', 'tools']);
 
+/** Trees that are deliberately not part of the published site, given as paths
+ *  relative to the site root so a generic folder name like "Old" cannot match
+ *  somewhere it was not meant to.
+ *
+ *  you/2023/Old is a superseded duplicate of you/2023: every event in it has a
+ *  live counterpart, nothing links into it, it is absent from the sitemap, and
+ *  it is excluded from deployment. Its 637 pages reference ../../../js/ from a
+ *  depth that needs one more level, which is the bulk of this site's remaining
+ *  broken references.
+ *
+ *  you/!template holds the generator's source files, whose {YEAR}/{DIRECTORY}
+ *  placeholders are not paths and never resolve. */
+const SKIP_PATHS = new Set(['you/2023/old', 'you/!template']);
+
 /** Case-insensitive index of every real file, so we also catch case mismatches
  *  (harmless on Windows/IIS locally, fatal if content ever moves to Linux/blob). */
 const filesLower = new Set();
@@ -57,6 +71,7 @@ function walk(dir) {
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
       if (SKIP_DIRS.has(e.name)) continue;
+      if (SKIP_PATHS.has(path.relative(siteRoot, full).replace(/\\/g, '/').toLowerCase())) continue;
       walk(full);
     } else {
       const rel = path.relative(siteRoot, full).replace(/\\/g, '/');
