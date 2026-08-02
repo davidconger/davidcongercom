@@ -9,7 +9,11 @@
  *
  * This takes the spacers out and gives the paragraph a class, so the space
  * around both can be set once in the stylesheet and changed without touching
- * 342 files again. No wording moves and no URL changes.
+ * 5,800 files again. No wording moves and no URL changes.
+ *
+ * Covers both shapes of page: the event and pagination lists, whose grid is
+ * <ul id="youimages">, and the single-photo pages, whose one image sits in
+ * <ul id="images">. The markup around the spacers is identical on both.
  *
  * Idempotent: a page with nothing left to strip is written back unchanged.
  *
@@ -62,7 +66,7 @@ function main() {
   const sample = sampleIdx > -1 ? Number(process.argv[sampleIdx + 1]) : 0;
 
   const pages = walk(YOU, []).filter((f) =>
-    /<ul id="youimages"/.test(fs.readFileSync(f, 'utf8')));
+    /<ul id="(?:you)?images"/.test(fs.readFileSync(f, 'utf8')));
 
   let changed = 0;
   let already = 0;
