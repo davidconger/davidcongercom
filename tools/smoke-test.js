@@ -137,6 +137,21 @@ const CHECKS = [
       return null;
     }],
 
+  ['rotator', 'the homepage rotator can fetch its image list',
+    '/js/featured-images.json', r => {
+      if (r.status !== 200) {
+        return 'status ' + r.status + ' - IIS has no MIME map for .json, so the file '
+          + 'uploads but cannot be served, and the homepage rotator fails';
+      }
+      let data;
+      try { data = JSON.parse(r.body); } catch (e) { return 'not valid JSON: ' + e.message; }
+      const n = Array.isArray(data) ? data.length : (data && Array.isArray(data.images) ? data.images.length : 0);
+      return n > 0 ? null : 'parsed, but lists no images';
+    }],
+
+  ['favicon', 'the site has a favicon',
+    '/favicon.ico', r => (r.status === 200 ? null : 'status ' + r.status)],
+
   ['notfound', 'a missing page gets the custom 404',
     '/this-page-should-never-exist-' + Date.now(), r => {
       if (r.status !== 404) return 'status ' + r.status + ', expected 404';
