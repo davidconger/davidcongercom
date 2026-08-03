@@ -1823,6 +1823,189 @@ main.prose.pageStream {
 		gap: 12px;
 	}
 }
+
+/* --------------------------------------------------------------------------
+   The /you/ lightbox
+
+   Clicking a thumbnail opens the full photograph over the page. Clicking the
+   photograph downloads it, so the controls deliberately sit clear of the image
+   rather than on top of it - anything overlaying the photograph would swallow
+   that click. They hang off the right edge on a desktop and move above the
+   photograph, still clear of it, when there is no room beside.
+   -------------------------------------------------------------------------- */
+
+html.lightboxOpen,
+html.lightboxOpen body {
+	overflow: hidden;
+}
+
+.lightbox {
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	background: rgba(0, 0, 0, 0.94);
+}
+
+.lightbox[hidden] {
+	display: none;
+}
+
+.lightboxInner {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+}
+
+.lightboxStage {
+	position: relative;
+	min-width: 0;
+	line-height: 0;
+}
+
+.lightboxPhoto {
+	display: block;
+	line-height: 0;
+	cursor: pointer;
+}
+
+.lightboxPhoto img {
+	display: block;
+	width: auto;
+	height: auto;
+	max-width: calc(100vw - 140px);
+	max-height: 90vh;
+	box-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.6),
+		0 18px 50px rgba(0, 0, 0, 0.7);
+}
+
+.lightboxInner.isLoading .lightboxPhoto img {
+	opacity: 0.25;
+}
+
+.lightboxInner.isLoading .lightboxStage::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 40px;
+	height: 40px;
+	margin: -20px 0 0 -20px;
+	border: 3px solid rgba(255, 255, 255, 0.25);
+	border-top-color: #fff;
+	border-radius: 50%;
+	animation: lightboxSpin 800ms linear infinite;
+}
+
+@keyframes lightboxSpin {
+	to { transform: rotate(360deg); }
+}
+
+/* Shown when the photograph itself is missing from the server, so the visitor
+   gets a way forward instead of a broken image icon. */
+.lightboxNote {
+	max-width: 30em;
+	margin: 0;
+	padding: 28px 24px;
+	color: #f0f0f0;
+	font-size: 15px;
+	line-height: 1.55;
+	text-align: center;
+}
+
+.lightboxNote a {
+	color: #fff;
+	text-decoration: underline;
+}
+
+.lightboxTools {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	flex: none;
+}
+
+.lightboxBtn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 46px;
+	height: 46px;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, 0.4);
+	background: rgba(255, 255, 255, 0.12);
+	color: #fff;
+	cursor: pointer;
+	transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.lightboxBtn:hover,
+.lightboxBtn:focus {
+	background: rgba(255, 255, 255, 0.26);
+}
+
+.lightboxBtn:focus-visible {
+	outline: 2px solid #6aa8ff;
+	outline-offset: 3px;
+}
+
+/* Downloading is the point of these galleries, so it reads as the primary
+   control rather than another faint circle. */
+.lightboxSave {
+	background: #fff;
+	border-color: #fff;
+	color: #141414;
+}
+
+.lightboxSave:hover,
+.lightboxSave:focus {
+	background: #fff;
+	color: #000;
+	transform: scale(1.06);
+}
+
+@media (max-width: 860px) {
+	.lightbox {
+		padding: 12px;
+	}
+
+	.lightboxInner {
+		flex-direction: column;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.lightboxTools {
+		order: -1;
+		flex-direction: row;
+		align-self: flex-end;
+	}
+
+	.lightboxPhoto img {
+		max-width: calc(100vw - 24px);
+		max-height: 76vh;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.lightboxInner.isLoading .lightboxStage::after {
+		animation: none;
+	}
+
+	.lightboxBtn {
+		transition: none;
+	}
+
+	.lightboxSave:hover,
+	.lightboxSave:focus {
+		transform: none;
+	}
+}
 /* --------------------------------------------------------------------------
    Catalog grids
 
