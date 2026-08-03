@@ -30,8 +30,12 @@ const DRY = process.argv.includes('--dry');
 const START = '<!--ARCHIVE START-->';
 const END = '<!--ARCHIVE END-->';
 
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+
 const read = (p) => fs.readFileSync(p, 'utf8');
 const crlf = (s) => s.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
+const escapeAttr = (s) => s.replace(/&(?!(?:amp|lt|gt|quot|#\d+|#x[0-9a-f]+);)/gi, '&amp;').replace(/"/g, '&quot;');
 
 /** Years the index grid already shows as thumbnails. */
 function gridYears(indexHtml) {
@@ -60,16 +64,129 @@ function yearBlocks(previousHtml) {
   });
 }
 
-function buildArchive(blocks) {
-  const parts = blocks.map((b) => '\t' + b.html.replace(/^\s+/, ''));
+/**
+ * Pull the events out of one year's block.
+ *
+ * previous.htm was hand-maintained for sixteen years and it shows. Entries
+ * mostly read "11.19.2022: <a href=...>", but the file also contains "7.05.2019"
+ * with no leading zero, "08.14.2016" with no colon, "12.2010" with no day at
+ * all, and the 2009-2011 events carry no date whatsoever. Long entries wrap
+ * mid-tag, so nothing here can be done a line at a time either.
+ *
+ * So the links drive the parse, not the dates: find every anchor, then look at
+ * the text between it and the previous one for a date to go with it. An entry
+ * with no date still becomes a card; it just does not get a date line.
+ */
+function entries(html) {
+  const out = [];
+  const re = /<a href="([^"]+)">([\s\S]*?)<\/a>/g;
+  let cursor = 0;
+
+  for (const m of html.matchAll(re)) {
+    const lead = html.slice(cursor, m.index);
+    cursor = m.index + m[0].length;
+
+    let date = '';
+    const full = /(\d{1,2})\.(\d{1,2})\.(\d{4})\s*:?\s*$/.exec(lead);
+    const monthOnly = /(\d{1,2})\.(\d{4})\s*:?\s*$/.exec(lead);
+    if (full) {
+      const month = MONTHS[Number(full[1]) - 1];
+      if (month) date = `${month} ${Number(full[2])}, ${full[3]}`;
+    } else if (monthOnly) {
+      const month = MONTHS[Number(monthOnly[1]) - 1];
+      if (month) date = `${month} ${monthOnly[2]}`;
+    }
+
+    const href = m[1].replace(/\/?(?:index\.html?)?$/i, '') + '/';
+    out.push({
+      href,
+      dir: href.replace(/\/$/, ''),
+      date,
+      title: m[2].replace(/\s+/g, ' ').trim(),
+    });
+  }
+  return out;
+}
+
+/**
+ * "Thunder From Down Under at Snoqualmie Casino" -> event and venue.
+ *
+ * Split on the last " at ", not the first: one act is called Asleep at the
+ * Wheel, and no venue on this list has "at" in its name.
+ */
+function splitTitle(title) {
+  const i = title.lastIndexOf(' at ');
+  if (i < 0) return { event: title, venue: '' };
+  return { event: title.slice(0, i), venue: title.slice(i + 4) };
+}
+
+function renderEntry(e) {
+  const { event, venue } = splitTitle(e.title);
+
+  // The catalog markup puts <br/> at the end of the preceding line rather than
+  // on its own, so the caption lines are assembled and then joined.
+  const caption = [`<event>${event}</event>`];
+  if (venue) caption.push(`<venue>${venue}</venue>`);
+  if (e.date) caption.push(`<date>${e.date}</date>`);
+
   return [
-    START,
-    '<div class="youArchive">',
-    '\t<h2 class="pageHeader">Previous Events</h2>',
-    parts.join('\r\n'),
-    '</div>',
-    END,
+    '\t\t<li>',
+    '\t\t\t<div>',
+    `\t\t\t\t<a href="${escapeAttr(e.href)}">`,
+    `\t\t\t\t\t<img src="${escapeAttr(e.href)}thumbnail.jpg" alt="${escapeAttr(event)}"` +
+      ' width="240" height="160" loading="lazy" decoding="async"/><br/>',
+    ...caption.map((line, i) => `\t\t\t\t\t${line}${i < caption.length - 1 ? '<br/>' : ''}`),
+    '\t\t\t\t</a>',
+    '\t\t\t</div>',
+    '\t\t</li>',
   ].join('\r\n');
+}
+
+/**
+ * Every earlier season as the same grid of thumbnails the recent ones use.
+ *
+ * These years were a run of text links only because the retired generator never
+ * wrote a thumbnail for them; tools/you-thumbnails.js has since cropped one from
+ * each event's own first photograph, so there is no longer any reason for the
+ * page to change shape half way down.
+ */
+function buildArchive(blocks) {
+  const parts = [];
+  const missing = [];
+  let total = 0;
+
+  for (const b of blocks) {
+    const list = entries(b.html);
+    if (!list.length) continue;
+    total += list.length;
+    for (const e of list) {
+      if (!fs.existsSync(path.join(ROOT, 'you', e.dir, 'thumbnail.jpg'))) missing.push(e.dir);
+    }
+    parts.push(
+      `\t<span class="yearHeader">${b.year}</span>`,
+      '\t<ul class="catalogList">',
+      list.map(renderEntry).join('\r\n'),
+      '\t</ul>'
+    );
+  }
+
+  if (missing.length) {
+    console.log(`  MISSING thumbnails : ${missing.length}`);
+    for (const d of missing.slice(0, 10)) console.log(`      you/${d}`);
+    console.log('      run: node tools/you-thumbnails.js');
+  }
+
+  return {
+    html: [
+      START,
+      '<div class="youArchive">',
+      '\t<h2 class="pageHeader">Previous Events</h2>',
+      parts.join('\r\n'),
+      '</div>',
+      END,
+    ].join('\r\n'),
+    total,
+  };
 }
 
 function main() {
@@ -78,11 +195,11 @@ function main() {
 
   const covered = gridYears(indexHtml);
   const blocks = yearBlocks(previousHtml).filter((b) => !covered.has(b.year));
-  const events = blocks.reduce((n, b) => n + (b.html.match(/<a href="/g) || []).length, 0);
+  const built = buildArchive(blocks);
 
   console.log(`  grid years         : ${[...covered].sort().join(', ')}`);
   console.log(`  archive years      : ${blocks.map((b) => b.year).join(', ')}`);
-  console.log(`  archive events     : ${events}`);
+  console.log(`  archive events     : ${built.total}`);
 
   let out = indexHtml;
 
@@ -97,7 +214,7 @@ function main() {
 
   // 2. The outro said "not finding your event? view previous events" -- the
   //    events are now on this page, so the archive block takes its place.
-  const archive = crlf(buildArchive(blocks));
+  const archive = crlf(built.html);
   const existing = new RegExp(`${START}[\\s\\S]*?${END}`);
   const outro = /<div class="catalogOutro">[\s\S]*?<\/div>/i;
 

@@ -1844,28 +1844,48 @@ main.prose.pageStream {
    treatment: the thumbnails lose the white hairline for the shadow the rest of
    the site now uses, and the caption under each one is set as a caption rather
    than as body text.
+
+   The /you/ archive grid is the exception -- it sits in .youArchive rather than
+   #catalog, so the base sheet's `#catalog .catalogList` rules do not reach it.
+   Rather than move those rules (nine catalog/list.htm pages still rely on them
+   and carry no .pageStream class), each rule below that has to beat one of them
+   is repeated with #catalog in the selector. Without that the two grids on
+   /you/ would not match each other.
    -------------------------------------------------------------------------- */
 
-.pageStream #catalog {
+.pageStream #catalog,
+.pageStream .youArchive .catalogList {
 	font-size: 13px;
 }
 
+.pageStream .catalogList,
 .pageStream #catalog .catalogList {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: center;
 	gap: 39px 20px;
-	padding-top: 8px;
+	margin: 0;
+	padding: 8px 0 0;
+	list-style: none;
 }
 
+.pageStream .catalogList li,
 .pageStream #catalog .catalogList li {
+	display: block;
 	width: 240px;
 	margin: 0;
 	padding: 0;
+	list-style: none;
 }
 
+.pageStream .catalogList li img,
 .pageStream #catalog .catalogList li img {
 	display: block;
+	/* A handful of the older thumbnails were never cropped to the catalog's
+	   240x160, so the box is enforced here rather than trusted from the file. */
+	width: 240px;
+	height: 160px;
+	object-fit: cover;
 	margin: 0 auto 10px;
 	border: 0;
 	box-shadow:
@@ -1874,14 +1894,14 @@ main.prose.pageStream {
 	transition: box-shadow 200ms ease;
 }
 
-.pageStream #catalog .catalogList li a:hover img,
-.pageStream #catalog .catalogList li a:focus img {
+.pageStream .catalogList li a:hover img,
+.pageStream .catalogList li a:focus img {
 	box-shadow:
 		0 1px 2px rgba(0, 0, 0, 0.55),
 		0 16px 38px rgba(0, 0, 0, 0.58);
 }
 
-.pageStream #catalog .catalogList li a:focus-visible img {
+.pageStream .catalogList li a:focus-visible img {
 	outline: 2px solid #0066ff;
 	outline-offset: 3px;
 }
@@ -1893,40 +1913,40 @@ main.prose.pageStream {
    caption reads as three separate things rather than one. Hidden by tag name
    rather than wholesale, because the year catalogs under /catalog/ write their
    caption as a single run of text where the break is load-bearing. */
-.pageStream #catalog .catalogList li img + br,
-.pageStream #catalog .catalogList li event + br,
-.pageStream #catalog .catalogList li venue + br {
+.pageStream .catalogList li img + br,
+.pageStream .catalogList li event + br,
+.pageStream .catalogList li venue + br {
 	display: none;
 }
 
-.pageStream #catalog .catalogList li a:link,
-.pageStream #catalog .catalogList li a:visited {
+.pageStream .catalogList li a:link,
+.pageStream .catalogList li a:visited {
 	display: block;
 	color: #a8a8a8;
 	line-height: 1.5;
 	text-decoration: none;
 }
 
-.pageStream #catalog .catalogList li a:hover,
-.pageStream #catalog .catalogList li a:focus,
-.pageStream #catalog .catalogList li a:active {
+.pageStream .catalogList li a:hover,
+.pageStream .catalogList li a:focus,
+.pageStream .catalogList li a:active {
 	color: #e8e8e8;
 	text-decoration: none;
 }
 
-.pageStream #catalog .catalogList li event {
+.pageStream .catalogList li event {
 	display: block;
 	font-size: 14px;
 	font-weight: 600;
 	color: #ececec;
 }
 
-.pageStream #catalog .catalogList li venue,
-.pageStream #catalog .catalogList li date {
+.pageStream .catalogList li venue,
+.pageStream .catalogList li date {
 	display: block;
 }
 
-.pageStream #catalog .catalogList li date {
+.pageStream .catalogList li date {
 	font-size: 11px;
 	letter-spacing: 1.4px;
 	text-transform: uppercase;
@@ -1961,13 +1981,16 @@ main.prose.pageStream {
 
 /* Every earlier season, folded in from the old previous.htm so the whole run of
    events lives on one page. A hairline sets it apart from the thumbnail grid
-   above without making it look like a different page. */
+   above without making it look like a different page.
+
+   These years used to be a list of text links, because the retired generator
+   never wrote a thumbnail for them. They do now, so the archive is the same grid
+   as the seasons above it and needs none of the type or link styling a run of
+   text needed -- only the rule, the spacing and the year headings. */
 .pageStream .youArchive {
 	margin-top: 34px;
 	padding-top: 28px;
 	border-top: 1px solid rgba(255, 255, 255, 0.1);
-	font-size: 15px;
-	line-height: 1.9;
 	color: #c8c8c8;
 	text-align: center;
 }
@@ -1984,31 +2007,15 @@ main.prose.pageStream {
 	margin-bottom: 4px;
 }
 
+/* Each year heading sits above its own grid, so it needs clear air above it and
+   only a little below, where the grid's own padding takes over. */
 .pageStream .youArchive .yearHeader {
-	margin: 30px 0 6px;
+	margin: 38px 0 2px;
 	font-size: 18px;
 }
 
 .pageStream .youArchive .pageHeader + .yearHeader {
 	margin-top: 18px;
-}
-
-.pageStream .youArchive .yearHeader + br {
-	display: none;
-}
-
-.pageStream .youArchive a:link,
-.pageStream .youArchive a:visited {
-	color: #dcdcdc;
-	text-decoration: underline;
-	text-decoration-color: rgba(255, 255, 255, 0.28);
-	text-underline-offset: 3px;
-}
-
-.pageStream .youArchive a:hover,
-.pageStream .youArchive a:focus {
-	color: #ffffff;
-	text-decoration-color: rgba(255, 255, 255, 0.75);
 }
 
 .pageStream #catalogNav a:link,
