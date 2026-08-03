@@ -5,6 +5,30 @@ works, but there is no record of what was deployed, no way to roll back, and
 nothing stopping a half-finished upload from going live. This note describes the
 deploy path that now exists, and what it would take to do better.
 
+## Ground rule: deploys are authorized by the owner, every time
+
+**Nothing reaches production without David asking for it.** Not a config tweak,
+not a "safe" one-liner, not a re-run of something that worked yesterday. When
+there is any doubt at all, do not deploy — ask.
+
+This is enforced at three levels, and none of them may be weakened:
+
+- `deploy.yml` is `workflow_dispatch` only. There is deliberately no `push:`
+  trigger, so committing and pushing can never publish anything.
+- `dry-run` defaults to on and `scope` defaults to `config-only`, so even an
+  accidental run does nothing.
+- The workflow uses the `production` environment, which is where a required
+  reviewer can be added in GitHub if that extra gate is ever wanted.
+
+Committing and pushing freely is fine and expected — that is how work is saved
+and reviewed. The line is publication. Changes get tested locally first
+(`node tools/serve.js`, then `layout-probe.js` / `smoke-test.js` against
+`http://127.0.0.1:8099/`), and only then does David decide whether they ship.
+
+The reason is on the record: an unattended `web.config` deploy took the whole
+site down with a 500 on every extensionless URL, including the homepage. See
+"If some URLs 500 and others are fine" under Rollback.
+
 ## What the site actually is
 
 Measured from the current tree:
@@ -29,10 +53,14 @@ and the server additionally still holds the FrontPage cruft that phase 1 removed
 here, so actual usage is higher. Every event adds more. This is the constraint
 that eventually forces a decision.
 
-## What is on the server right now
+## What was on the server before the first deploy
 
-Nothing from the modernization has been deployed. Probing the live site shows it
-is still entirely pre-modernization:
+*Historical — this is the baseline the first deploy was measured against. The
+modernization has since shipped and all 14 smoke checks pass. Kept because it
+explains why the first deploy was shaped the way it was.*
+
+Nothing from the modernization had been deployed. Probing the live site showed
+it was still entirely pre-modernization:
 
 | Request | Live result | Meaning |
 |---|---|---|
@@ -43,13 +71,13 @@ is still entirely pre-modernization:
 | `/galleries/2011/05/atrak/atrak-01.jpg` | 200 | the photographs were re-filed years ago |
 | `/you/` | 200 | `index.htm` is already a default document |
 
-The last two lines matter. The photographs already sit at the paths the new
-markup expects, and IIS already serves `index.htm` for a directory request — so
-the directory-form canonical URLs will resolve as soon as the pages land. The
-403s are folders waiting for an `index.htm` this deploy supplies.
+The last two lines matter. The photographs already sat at the paths the new
+markup expects, and IIS already served `index.htm` for a directory request — so
+the directory-form canonical URLs resolved as soon as the pages landed. The
+403s were folders waiting for an `index.htm` that deploy supplied.
 
-The first deploy is therefore the whole modernization at once, against a server
-that has never seen any of it.
+The first deploy was therefore the whole modernization at once, against a server
+that had never seen any of it.
 
 ## What exists now
 
