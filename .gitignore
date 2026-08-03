@@ -7,6 +7,17 @@
 *.JPG
 *.JPEG
 
+# ...but the small derived images are part of the site rather than the archive,
+# and the deploy runs from a checkout: anything git cannot see, GitHub Actions
+# cannot ship. These three sets are generated or hand-made site furniture --
+# 240x160 grid thumbnails and page chrome, about 80 MB all told, against 5.3 GB
+# of photographs. Tracking them is what makes a deploy able to reproduce the
+# site rather than only its markup.
+!you/**/thumbnail.jpg
+!catalog/**/*.jpg
+!images/**/*.jpg
+!images/**/*.jpeg
+
 # FrontPage Server Extensions binary databases (1pvt/) — 140 MB, dead.
 *.btr
 *.lck
@@ -22,10 +33,12 @@ desktop.ini
 # never be able to add thousands of files to a commit.
 node_modules/
 
-# Deploy scratch. The workflow builds _deploy-config/ on the runner when shipping
-# web.config ahead of the pages, and FTP-Deploy-Action keeps its manifest of what
-# is already on the server.
+# Deploy scratch. The workflow builds _deploy-config/ and _deploy-images/ on the
+# runner when shipping web.config or the thumbnails ahead of the pages, and
+# FTP-Deploy-Action keeps a manifest per scope of what is already on the server.
 _deploy-config/
+_deploy-images/
+.ftp-deploy-*.json
 .ftp-deploy-sync-state.json
 
 # scratch commit-message file used by the tooling
