@@ -118,6 +118,25 @@ const CHECKS = [
   ['you', 'the meet and greet section is up',
     '/you/', r => r.status === 200 ? null : 'status ' + r.status],
 
+  // Bluesky proves the account owns davidconger.com by fetching this file. It is
+  // the only extensionless file on the site, which is exactly why it is worth a
+  // check: IIS answers 404.3 for an unmapped extension, so this URL 404s unless
+  // web.config carries the mapping, and nothing else on the site would notice.
+  ['atproto', 'the Bluesky domain verification file is served',
+    '/.well-known/atproto-did', r => {
+      if (r.status !== 200) {
+        return 'status ' + r.status + ' - IIS needs the extensionless MIME map in web.config';
+      }
+      if (!/^did:plc:[a-z2-7]+$/.test(r.body.trim())) {
+        return 'body is "' + r.body.trim().slice(0, 60) + '", which is not a DID';
+      }
+      // The spec says clients should tolerate stray whitespace, but also that the
+      // server should not send any. This is our own file, so hold it to the
+      // stricter half: a trailing newline is the classic way this breaks.
+      if (r.body !== r.body.trim()) return 'the DID is served with surrounding whitespace';
+      return null;
+    }],
+
   ['notfound', 'a missing page gets the custom 404',
     '/this-page-should-never-exist-' + Date.now(), r => {
       if (r.status !== 404) return 'status ' + r.status + ', expected 404';

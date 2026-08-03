@@ -192,5 +192,5 @@ jobs:
             node tools/smoke-test.js "$SITE"
           else
             echo "web.config has not been deployed yet, so the checks that depend on it are not applicable."
-            node tools/smoke-test.js "$SITE" --skip=redirect,redirect-issued,notfound,cache
+            node tools/smoke-test.js "$SITE" --skip=redirect,redirect-issued,notfound,cache,atproto
           fi
