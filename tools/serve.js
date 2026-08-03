@@ -44,6 +44,18 @@ http
 
     try {
       if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
+        /* IIS answers a directory request that has no trailing slash with a
+           301 to the version that has one, and the whole archive relies on it:
+           every gallery page addresses its photographs relatively. Serving the
+           index straight from ".../the-commodores-at-snoqualmie-casino" makes
+           the browser resolve "page-1/x_sm.jpg" against ".../2017/" instead,
+           so every image on the page 404s. Redirecting here keeps the preview
+           honest about what the live site does. */
+        if (!rel.endsWith('/')) {
+          const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+          res.writeHead(301, { Location: encodeURI(rel) + '/' + query }).end();
+          return;
+        }
         const idx = ['index.htm', 'index.html'].map((n) => path.join(file, n)).find(fs.existsSync);
         if (!idx) {
           res.writeHead(404).end('No index in directory');

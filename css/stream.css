@@ -377,7 +377,13 @@ body {
 .yearNav {
 	display: flex;
 	align-items: center;
-	justify-content: center;	gap: 10px;
+	justify-content: center;
+	gap: 10px;
+	/* The year pages size this row from their 30px stepper buttons. The index
+	   and /you/ have no steppers, only a static label, so their bar came out
+	   13px shorter and the first row of photographs crowded the heading.
+	   Reserving the stepper's height keeps every stream bar the same. */
+	min-height: 30px;
 }
 
 .yearLabel {
