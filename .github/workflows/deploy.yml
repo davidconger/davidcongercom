@@ -1,6 +1,6 @@
 # Deploys the site's code and markup to Azure App Service over FTP.
 #
-# Only what git tracks is shipped, which is the ~48 MB of HTML, CSS, JS and
+# Only what git tracks is shipped, which is the ~138 MB of HTML, CSS, JS and
 # icons. The 5.3 GB of photographs are deliberately not in the repository and
 # stay untouched on the server, so this workflow can never re-upload or delete
 # them.
@@ -25,6 +25,13 @@ on:
         description: 'List changes without uploading anything'
         type: boolean
         default: true
+      scope:
+        description: 'What to ship'
+        type: choice
+        default: config-only
+        options:
+          - config-only
+          - full
 
 concurrency:
   group: deploy-production
@@ -34,6 +41,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -54,16 +62,31 @@ jobs:
       - name: Check for broken references
         run: node tools/check-links.js . --max-broken 140
 
+      # web.config is the one file that can take the whole site down. Its rewrite
+      # section has never run against real IIS, and if URL Rewrite were missing or
+      # the 747-entry map were rejected, every page would answer 500. So the first
+      # deploy ships it on its own, together with the 404 page it references, and
+      # the smoke test below confirms IIS accepted it. Only then is `full` worth
+      # running.
+      - name: Stage the config-only payload
+        if: ${{ inputs.scope == 'config-only' }}
+        run: |
+          mkdir -p _deploy-config
+          cp web.config 404.htm _deploy-config/
+
       - name: Deploy
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.AZURE_FTP_SERVER }}
           username: ${{ secrets.AZURE_FTP_USERNAME }}
           password: ${{ secrets.AZURE_FTP_PASSWORD }}
           protocol: ftps
           dry-run: ${{ inputs.dry-run }}
+          local-dir: ${{ inputs.scope == 'config-only' && './_deploy-config/' || './' }}
           # Photographs live only on the server. Excluding them here means the
-          # sync never sees them as "deleted locally".
+          # sync never sees them as "deleted locally". The exclude list governs
+          # deletion as well as upload, so anything named here is left alone on
+          # the server rather than removed from it.
           exclude: |
             **/.git*
             **/.git*/**
@@ -79,3 +102,21 @@ jobs:
             # here also means the sync never treats the server's copy as
             # something to delete.
             you/2023/Old/**
+
+      # The deploy step reports success as soon as the last byte is written, which
+      # says nothing about whether the site still works. This is the step that
+      # would notice a site-wide 500, a redirect map that never loaded, or cache
+      # headers that silently did not take effect.
+      #
+      # After the config-only stage most of the site is still the old files, so
+      # only the checks that config alone can satisfy are run.
+      - name: Smoke test the live site
+        if: ${{ !inputs.dry-run }}
+        run: |
+          sleep 20
+          if [ "${{ inputs.scope }}" = "config-only" ]; then
+            node tools/smoke-test.js https://www.davidconger.com \
+              --only=home,redirect-issued,notfound,cache
+          else
+            node tools/smoke-test.js https://www.davidconger.com
+          fi

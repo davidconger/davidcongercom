@@ -20,9 +20,40 @@ segments are discarded at the site root rather than escaping above it, which
 matters because many legacy pages use one `../` too many.
 
 `--max-broken N` turns it into a CI gate, exiting non-zero above the ceiling.
-Zero broken references is not a reachable bar here — about 4,068 are
-long-standing breakage inside archived trees — so the gate asserts a change has
-not made things worse, which is the failure mode of a bad bulk edit.
+The count started at 75,670, and successive repair passes have brought it to
+about 108 — nearly all of them long-standing breakage inside archived trees. The
+gate is set at 140 so it asserts a change has not made things worse, which is the
+failure mode of a bad bulk edit.
+
+## smoke-test.js
+
+Checks a deployed site for the handful of failures that would be catastrophic and
+silent. It is not a crawl: it is the set of behaviours that either work for the
+whole site or fail for the whole site.
+
+```bash
+node tools/smoke-test.js https://www.davidconger.com
+node tools/smoke-test.js https://www.davidconger.com --only=home,redirect-issued,notfound,cache
+```
+
+Checks are `home`, `css`, `robots`, `sitemap`, `dirindex`, `redirect`,
+`redirect-issued`, `legacyurl`, `you`, `notfound` and `cache`. Exit code is 1 if
+any fail, 2 if an unknown check is named.
+
+The one that earns its keep is `redirect`. `web.config` carries a 747-entry
+rewrite map sending every pre-2012 gallery address to its new home, and that
+section has never been executed by real IIS. Requesting `/galleries/atrak.htm`
+and requiring a 301 to `/galleries/2011/05/atrak/` exercises the entire map in a
+single request, and would catch the worst case — URL Rewrite unavailable, so
+every page answers 500 — immediately.
+
+`redirect-issued` is the same request stopping at the redirect itself, for use
+when `web.config` has been shipped ahead of the pages and the destination gallery
+has no `index.htm` on the server yet.
+
+`.github/workflows/deploy.yml` runs this after any non-dry-run deploy and fails
+the workflow if the site did not come back correctly. See `DEPLOY.md` for the
+staged first-deploy procedure this is built around.
 
 ## analyze-links.js
 

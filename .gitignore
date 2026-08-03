@@ -17,5 +17,16 @@ desktop.ini
 *.tmp
 ~$*
 
+# Node tooling. Nothing in tools/ has runtime dependencies — packages only ever
+# get installed here for one-off checks — but an accidental `npm install` should
+# never be able to add thousands of files to a commit.
+node_modules/
+
+# Deploy scratch. The workflow builds _deploy-config/ on the runner when shipping
+# web.config ahead of the pages, and FTP-Deploy-Action keeps its manifest of what
+# is already on the server.
+_deploy-config/
+.ftp-deploy-sync-state.json
+
 # scratch commit-message file used by the tooling
 .commitmsg

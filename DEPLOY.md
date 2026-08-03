@@ -7,18 +7,20 @@ deploy path that now exists, and what it would take to do better.
 
 ## What the site actually is
 
-Measured after the phase 1 purge:
+Measured from the current tree:
 
 | | Files | Size |
 |---|---:|---:|
-| Photographs (`.jpg`) | 43,041 | 5,306 MB |
-| Pages (`.htm`) | 9,599 | 44 MB |
-| CSS, JS, icons, config | 417 | 4 MB |
-| **Total** | **53,057** | **5,355 MB** |
+| Photographs (`.jpg`, untracked) | 43,014 | 5,292 MB |
+| Pages (`.htm`) | 11,454 | 132.5 MB |
+| CSS and JS | 70 | 0.5 MB |
+| Icons and graphics | 113 | 1.7 MB |
+| Other (config, XML, text) | 273 | 2.8 MB |
+| **Tracked in git — the deploy payload** | **11,910** | **137.5 MB** |
 
 Two facts follow from that table, and they drive everything below.
 
-**The photographs are 99% of the bytes and almost none of the churn.** A typical
+**The photographs are 97% of the bytes and almost none of the churn.** A typical
 change touches markup. Re-uploading 5.3 GB to publish a stylesheet edit is not a
 deployment strategy.
 
@@ -27,25 +29,49 @@ and the server additionally still holds the FrontPage cruft that phase 1 removed
 here, so actual usage is higher. Every event adds more. This is the constraint
 that eventually forces a decision.
 
+## What is on the server right now
+
+Nothing from the modernization has been deployed. Probing the live site shows it
+is still entirely pre-modernization:
+
+| Request | Live result | Meaning |
+|---|---|---|
+| `/css/site.css` | 404 | the consolidated stylesheet has never shipped |
+| `/robots.txt` | 404 | never shipped |
+| `/sitemap.xml` | 200, 1,738 URLs | the stale 2021 stub; the new one has 10,791 |
+| `/galleries/2011/05/atrak/` | 403 | the folder exists but holds no `index.htm` |
+| `/galleries/2011/05/atrak/atrak-01.jpg` | 200 | the photographs were re-filed years ago |
+| `/you/` | 200 | `index.htm` is already a default document |
+
+The last two lines matter. The photographs already sit at the paths the new
+markup expects, and IIS already serves `index.htm` for a directory request — so
+the directory-form canonical URLs will resolve as soon as the pages land. The
+403s are folders waiting for an `index.htm` this deploy supplies.
+
+The first deploy is therefore the whole modernization at once, against a server
+that has never seen any of it.
+
 ## What exists now
 
 `.github/workflows/deploy.yml` deploys over FTPS from GitHub Actions.
 
-- **Manual trigger only**, with a `dry-run` input that defaults to on. Nothing
-  deploys unless someone asks for it, and the first thing they see is a list of
-  what would change.
-- **Only tracked files are shipped** — the ~48 MB of markup, CSS, JS and icons.
-  `*.jpg` is excluded, so the sync never sees the photographs as "missing
-  locally" and can never delete them from the server.
+- **Manual trigger only**, with a `dry-run` input that defaults to on and a
+  `scope` input that defaults to `config-only`. Both defaults are the cautious
+  choice, so an accidental run does nothing.
+- **Only tracked files are shipped** — the 137.5 MB of markup, CSS, JS and icons.
+  `*.jpg` is excluded, and the exclude list governs deletion as well as upload,
+  so the sync can never delete the photographs from the server.
 - **Three gates run before the upload:** `web.config` must parse, `sitemap.xml`
   must parse with the correct namespace and more than 8,000 URLs, and
-  `check-links.js --max-broken 4100` must pass.
+  `check-links.js --max-broken 140` must pass.
+- **A smoke test runs after a real upload** and fails the workflow if the site
+  did not come back correctly.
 
-That last gate deserves an explanation. The site carries about 4,068 broken
-references, nearly all of them inside archived trees whose relative paths broke
-when they were moved years ago. Zero is not a reachable bar, so the gate checks
-that a change has not made things *worse* — which is exactly the failure mode of
-a bad bulk edit across 9,597 pages.
+The broken-reference gate deserves an explanation. The site carries about 108
+broken references, nearly all of them inside archived trees whose relative paths
+broke when they were moved years ago. The gate checks that a change has not made
+things *worse* — which is exactly the failure mode of a bad bulk edit across
+11,454 pages.
 
 ### Setting it up
 
@@ -58,7 +84,60 @@ publish profile) and copy the FTP entry's values into repository secrets:
 | `AZURE_FTP_USERNAME` | `davidconger\$davidconger` |
 | `AZURE_FTP_PASSWORD` | from the publish profile |
 
-Run it once with dry-run on and read the log before running it for real.
+### The first deploy, in four runs
+
+`web.config` is the one file that can take the entire site down. Its rewrite
+section carries a 747-entry map redirecting every pre-2012 gallery address to its
+new home, and that section has never been executed by real IIS. If the URL
+Rewrite module were unavailable, or the map were rejected, **every page would
+answer 500**. So it goes up on its own, first, and is verified before anything
+else moves.
+
+| # | `scope` | `dry-run` | What it proves |
+|---|---|---|---|
+| 1 | `config-only` | on | The gates pass and the FTPS credentials work. |
+| 2 | `config-only` | **off** | IIS accepted the rewrite map. `web.config` and `404.htm` are the only files that moved. |
+| 3 | `full` | on | The list of the ~11,900 files about to change looks right, and nothing is queued for deletion. |
+| 4 | `full` | **off** | The site is live and modern. |
+
+Run 2 is the one that matters. It uploads two small files, waits, then runs:
+
+    node tools/smoke-test.js https://www.davidconger.com \
+      --only=home,redirect-issued,notfound,cache
+
+- `redirect-issued` requests `/galleries/atrak.htm` and requires a 301 pointing
+  at `/galleries/2011/05/atrak/`. That single request exercises the whole rewrite
+  map and would catch a 500 immediately.
+- `cache` confirms the new `Cache-Control` header is actually being applied to a
+  photograph, which today has no cache header at all.
+
+**If run 2 fails, delete `web.config` from the server over FTP.** IIS reverts to
+its default behaviour instantly and the old site keeps serving. Nothing else has
+changed at that point, so there is nothing else to undo.
+
+Run 4 runs the full ten-check smoke test, which additionally confirms the
+stylesheet, `robots.txt` and the 10,791-URL sitemap all shipped, that a
+directory URL resolves, that a long-published URL like
+`/galleries/2019/12/deadmau5/index.htm` is untouched, and that `/you/` is up.
+
+You can run that suite by hand at any time:
+
+    node tools/smoke-test.js https://www.davidconger.com
+
+### What happens to the old FrontPage files on the server
+
+The action tracks what it has deployed in a `.ftp-deploy-sync-state.json` file
+it keeps on the server. On the first run there is no such file, so it has no
+record of the ~46,400 FrontPage files sitting in `wwwroot` and will not touch
+them — it uploads the new tree alongside them. **Read the run 3 dry-run log
+before running 4 to confirm this**; the log lists every delete it intends to
+make, and on a first deploy that list should be empty.
+
+Clearing that cruft off the server is a separate, optional job. It is dead
+weight against the 10 GB quota but it is not harmful, and it is safer done
+deliberately than as a side effect of a deploy. Never use the action's
+`dangerous-clean-slate` option to do it: that deletes everything on the server
+*including excluded paths*, which here means all 5.3 GB of photographs.
 
 ### New photographs
 
@@ -95,7 +174,7 @@ for a 16-year archive full of external links. No redirects are involved.
 
 What it buys:
 
-- **The disk ceiling disappears.** App Service holds ~50 MB instead of 5.4 GB.
+- **The disk ceiling disappears.** App Service holds ~138 MB instead of 5.4 GB.
 - **Storage gets cheaper.** Blob hot storage is a fraction of a cent per GB-month;
   5.3 GB is a rounding error next to the B1 plan itself.
 - **Images get a real cache policy.** They are immutable once published, so they
@@ -129,5 +208,9 @@ to walk back once browsers have cached it.
 
 Markup is in git, so `git revert` followed by a deploy restores any previous
 state. `web.config` is the one file that can take the whole site down with a 500
-if it is wrong; deleting it returns IIS to its default behaviour and the site
-keeps serving.
+if it is wrong; deleting it over FTP returns IIS to its default behaviour and the
+site keeps serving. That is why it ships first and alone.
+
+The gap in this story is that FTPS sync has no atomic unit: a revert is another
+11,900-file upload, not a swap. Zip deploy fixes that, and zip deploy needs the
+images out of `wwwroot` — which is the case for the storage split above.
