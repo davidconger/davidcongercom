@@ -54,6 +54,20 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
    for it and left the index describing the archive as "0000-2020". */
 const YEAR_DIR = /^(?:19|20)\d{2}$/;
 
+/**
+ * Shows kept off the year stream, by gallery path.
+ *
+ * A handful of "galleries" are not photographs of a show at all -- they are
+ * screen captures of a magazine or radio-station article that ran the photos.
+ * They still deserve their own page, and the URL stays live, but in the stream
+ * they read as a white rectangle at a ratio nothing else uses, sitting among
+ * full-bleed stage photography. Listing one here drops it from its year page
+ * and from the featured cards while leaving the gallery itself untouched.
+ */
+const STREAM_EXCLUDE = new Set([
+  '2020/02/blakeshelton', // screen capture of the 98.9 The Bull photo gallery
+]);
+
 const argv = process.argv.slice(2);
 const years = [];
 let maxPhotos = 3;
@@ -353,6 +367,7 @@ function shows(year) {
 
   const out = [];
   for (const [rel, v] of byRel) {
+    if (STREAM_EXCLUDE.has(rel)) continue;
     const dir = path.join(ROOT, 'galleries', rel);
     // The catalog data for the early years lists some shows as a flat legacy
     // page -- "joenichols.htm" rather than "2009/07/joenichols" -- which exists
