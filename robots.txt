@@ -1,32 +1,15 @@
 # davidconger.com
 #
 # The concert archive is the point of the site, so crawling is welcome.
-# The exclusions below are superseded copies and client material, not
-# content anyone should reach from a search result.
+#
+# Deliberately minimal. robots.txt is a public file, so every Disallow line is
+# a signpost to the very thing it is meant to hide -- and worse, a disallowed
+# URL cannot be crawled, which means a `noindex` on that page is never read and
+# the URL can still surface in results on the strength of inbound links alone.
+# Anything that should stay out of search is handled in web.config instead,
+# with an X-Robots-Tag header on the paths themselves.
 
 User-agent: *
 Allow: /
-
-# The original 2009-2011 meet-and-greet tree has been converted into
-# /you/2009/, /you/2010/ and /you/2011/ and removed. It was never deployed,
-# so no rule is needed for it.
-
-# Removed from the source tree but still present on the server, which is only
-# ever added to over FTP. These stay until the server copy is cleaned up.
-Disallow: /galleries/old/
-Disallow: /proofs/
-
-# A superseded copy of 19 events, unreachable from the site's own navigation.
-Disallow: /you/2023/Old/
-
-# Page templates and the retired generator's source data.
-Disallow: /you/!template/
-Disallow: /galleries/0000/
-Disallow: /catalog/*/_data/
-
-# Leftovers from testing the retired generator.
-Disallow: /galleries/2012/06/test/
-Disallow: /galleries/2016/06/test/
-Disallow: /galleries/2016/06/test2/
 
 Sitemap: https://www.davidconger.com/sitemap.xml

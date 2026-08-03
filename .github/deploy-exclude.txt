@@ -1,0 +1,39 @@
+# Paths the full deploy leaves alone on the server.
+#
+# The exclude list governs deletion as well as upload, so anything named here is
+# not merely skipped: it is invisible to the sync, and the server's copy is left
+# exactly as it is rather than being treated as something deleted locally.
+#
+# Lines beginning with # are stripped by the workflow before the list is handed
+# to the FTP action, which would otherwise take them for glob patterns.
+
+# Repository plumbing and tooling; none of it is part of the site.
+**/.git*
+**/.git*/**
+**/node_modules/**
+**/tools/**
+**/*.md
+_proto/**
+
+# Photographs. ~5.3 GB of originals live only on the server and are uploaded by
+# hand. Excluding them is what guarantees a deploy can never delete the archive.
+# The small generated thumbnails are tracked in git and ship under the separate
+# `images` scope, which runs without this list.
+**/*.jpg
+**/*.jpeg
+
+# Superseded duplicate of you/2023. Nothing links into it and it is not in the
+# sitemap, so shipping its 1,788 files would only spend 148 MB of the App
+# Service quota on unreachable copies.
+you/2023/Old/**
+
+# Build inputs and page templates. web.config answers 404 for these paths, so
+# there is no reason for them to occupy the server at all. They used to be
+# listed in robots.txt, which published their names to anyone who asked.
+you/!template/**
+tearsheets/!template.htm
+galleries/0000/**
+catalog/*/_data/**
+galleries/2012/06/test/**
+galleries/2016/06/test/**
+galleries/2016/06/test2/**
