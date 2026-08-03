@@ -1211,17 +1211,17 @@ a.yearStep:focus-visible {
    may be allowed to reach them. The class is the fence.
    -------------------------------------------------------------------------- */
 
-/* Foldered gallery pages carry the same 640px frames the year pages do, so they
-   get the same two-up grid: two columns where the window can hold 1308px, one
-   below that, centred either way. A quarter of the images are portrait 426x640
-   rather than landscape 640x426, so the tracks stay a fixed 640px and portraits
-   sit centred inside one; align-items keeps every row hanging from its top edge
-   instead of stretching the short ones.
+/* Foldered gallery pages are a single 640px column: one photograph per row, at
+   the size it was made for, with nothing beside it competing for attention.
 
-   Flat pages are excluded. Their images are 500x334 and 334x500, a different
-   shape entirely, and they are laid out inside .flatImages rather than #images. */
+   Portraits are the exception, and the generator already expressed it -- 1,060
+   of the 1,064 multi-image list items on these pages are a pair of 426x640
+   portraits sharing one <li>, because two portraits side by side occupy the
+   same landscape-shaped row a single 640x426 frame does. Left in a two-column
+   grid that intent was invisible; in one column it is the layout. No markup
+   change is needed for it, only the column count. */
 .galleryPage #gallery {
-	max-width: 1308px;
+	max-width: 640px;
 	margin: 0 auto;
 	padding: 0;
 }
@@ -1276,25 +1276,12 @@ a.yearStep:focus-visible {
 .galleryPage #gallery #images {
 	padding: 0;
 	display: grid;
-	grid-template-columns: repeat(auto-fit, 640px);
+	/* One track, never wider than the frame and free to shrink below it, so no
+	   breakpoint is needed to get the photographs down onto a phone. */
+	grid-template-columns: minmax(0, 640px);
 	justify-content: center;
 	align-items: start;
-	gap: 46px 28px;
-}
-
-/* Once the grid is a single column the horizontal gutter is gone, so the
-   vertical rhythm tightens to match, exactly as .showGrid does. */
-@media (max-width: 1331px) {
-	.galleryPage #gallery #images {
-		gap: 38px 0;
-	}
-}
-
-/* Below the frame's own width there is no choice but to scale it. */
-@media (max-width: 671px) {
-	.galleryPage #gallery #images {
-		grid-template-columns: minmax(0, 1fr);
-	}
+	gap: 38px 0;
 }
 
 .galleryPage #gallery #images li {
