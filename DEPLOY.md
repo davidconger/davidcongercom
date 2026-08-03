@@ -38,7 +38,7 @@ is still entirely pre-modernization:
 |---|---|---|
 | `/css/site.css` | 404 | the consolidated stylesheet has never shipped |
 | `/robots.txt` | 404 | never shipped |
-| `/sitemap.xml` | 200, 1,738 URLs | the stale 2021 stub; the new one has 10,791 |
+| `/sitemap.xml` | 200, 1,738 URLs | the stale 2021 stub; the new one has 2,734 |
 | `/galleries/2011/05/atrak/` | 403 | the folder exists but holds no `index.htm` |
 | `/galleries/2011/05/atrak/atrak-01.jpg` | 200 | the photographs were re-filed years ago |
 | `/you/` | 200 | `index.htm` is already a default document |
@@ -62,7 +62,7 @@ that has never seen any of it.
   `*.jpg` is excluded, and the exclude list governs deletion as well as upload,
   so the sync can never delete the photographs from the server.
 - **Three gates run before the upload:** `web.config` must parse, `sitemap.xml`
-  must parse with the correct namespace and more than 8,000 URLs, and
+  must parse with the correct namespace and more than 2,400 URLs, and
   `check-links.js --max-broken 140` must pass.
 - **A smoke test runs after a real upload** and fails the workflow if the site
   did not come back correctly.
