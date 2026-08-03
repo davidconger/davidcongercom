@@ -251,7 +251,7 @@ jobs:
         run: |
           sleep 20
           if [ "${{ inputs.scope }}" = "config-only" ]; then
-            node tools/smoke-test.js "$SITE" --only=home,redirect-issued,notfound,cache
+            node tools/smoke-test.js "$SITE" --only=home,redirect-issued,notfound,cache,atproto
           elif curl -sS -o /dev/null -D - "$SITE/" | grep -qi '^x-content-type-options:'; then
             node tools/smoke-test.js "$SITE"
           else

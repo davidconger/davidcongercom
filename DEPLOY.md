@@ -196,8 +196,9 @@ The split is by what the image is for, not by its extension.
 
 **Site furniture is in git and ships with the `images` scope**: the 240x160 grid
 thumbnails under `you/**/thumbnail.jpg` and `catalog/`, and the page chrome under
-`images/`. 3,012 files, 79 MB. These change whenever a tool regenerates them, so
-they need a deploy path.
+`images/`. 3,110 files, 80 MB — 3,012 JPEG thumbnails plus 98 PNGs and GIFs of
+page chrome. These change whenever a tool regenerates them, so they need a
+deploy path.
 
 **Photographs are not in git and are never deployed.** 5.3 GB of originals live
 on the server and in the local OneDrive copy. Publishing an event is still:
