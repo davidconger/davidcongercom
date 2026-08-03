@@ -239,21 +239,22 @@ function descriptionFromGallery(rel) {
   return m ? `${m[1]}, ${m[2]}, ${m[3]}. ${m[4]} ${Number(m[5])}, ${m[6]}` : null;
 }
 
-// The 2009 galleries are only folders of JPEGs: no per-gallery page, no
-// catalog data, and no og:description anywhere. What does exist is the flat
-// legacy page the slug used to point at, whose <title> reads
-// "Katy Perry at KISS-FM | Seattle | davidconger.com". That is enough for an
-// artist and a venue, which is what the caption is mostly made of. No date is
-// recorded anywhere for these shows, so they carry none rather than an invented
-// one -- the caption already handles a missing line, as 51 venue-less shows do.
+// The 2009 galleries are only folders of JPEGs: no catalog data and no
+// og:description anywhere. What does exist is the page that used to sit flat
+// in /galleries/ and now sits in the folder with the frames, whose <title>
+// reads "Katy Perry at KISS-FM | Seattle | davidconger.com". That is enough
+// for an artist and a venue, which is what the caption is mostly made of. No
+// date is recorded anywhere for these shows, so they carry none rather than an
+// invented one -- the caption already handles a missing line, as 51 venue-less
+// shows do.
 //
 // The city is deliberately dropped. Elsewhere the archive writes places as
 // "Seattle, WA", and the venue classifier leans on that trailing state to tell
 // a place from a venue; a bare "Seattle" gets mistaken for the venue and wins,
 // so Katy Perry ends up playing Seattle rather than KISS-FM. Adding the state
 // back would be a guess, and not every show here is in Washington.
-function descriptionFromLegacyPage(slug) {
-  const file = path.join(ROOT, 'galleries', `${slug}.htm`);
+function descriptionFromLegacyPage(rel) {
+  const file = path.join(ROOT, 'galleries', rel, 'index.htm');
   if (!fs.existsSync(file)) return null;
   const t = /<title>([^<]*)<\/title>/i.exec(fs.readFileSync(file, 'utf8'));
   if (!t) return null;
@@ -316,7 +317,7 @@ function shows(year) {
         if (!s.isDirectory()) continue;
         const rel = `${year}/${m.name}/${s.name}`;
         if (byRel.has(rel)) continue;
-        const d = descriptionFromGallery(rel) || descriptionFromLegacyPage(s.name);
+        const d = descriptionFromGallery(rel) || descriptionFromLegacyPage(rel);
         if (d) byRel.set(rel, { desc: d, order: `zzz:${rel}` });
       }
     }
@@ -365,12 +366,11 @@ function shows(year) {
     const frames = best.slice(0, maxPhotos);
     if (!frames.length) continue;
 
-    // Where the caption should point. Most shows have a gallery page inside
-    // their own folder, but the 2009 galleries are bare folders of frames whose
-    // page is the flat legacy file at galleries/<slug>.htm. Linking to the
-    // folder there gives a directory with no index, so the destination is
-    // resolved here rather than assumed. A show with neither is dropped: a
-    // caption that goes nowhere is worse than one frame fewer on the page.
+    // Where the caption should point. Every show now has a page inside its own
+    // folder, including the 2009-2011 galleries whose page used to sit flat in
+    // /galleries/ and was moved in with its frames. A show with no page at all
+    // is dropped: a caption that goes nowhere is worse than one frame fewer on
+    // the page.
     const slug = rel.split('/').pop();
     let href;
     if (fs.existsSync(path.join(dir, 'index.htm'))) href = `${rel}/`;
