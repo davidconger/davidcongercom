@@ -31,6 +31,7 @@ on:
         default: config-only
         options:
           - config-only
+          - images
           - full
 
 concurrency:
@@ -47,6 +48,13 @@ jobs:
 
       # Cheap guards. A malformed web.config takes the whole site down with a
       # 500, and a sitemap that has lost URLs quietly drops pages out of search.
+      #
+      # The floor is 2,400. The sitemap deliberately lists only pages worth
+      # ranking -- 2,343 gallery pages, 324 event pages and the top level -- and
+      # leaves out the 8,045 single-photo and pagination pages that used to make
+      # up three quarters of it. Those URLs still answer; they are simply not
+      # advertised. If this number falls below the floor, something has gone
+      # wrong with the walk rather than with the site.
       - name: Validate XML
         run: xmllint --noout web.config sitemap.xml
 
@@ -56,7 +64,7 @@ jobs:
           const ns=s.includes('xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"');
           const n=(s.match(/<loc>/g)||[]).length;
           if(!ns) throw new Error('wrong sitemap namespace');
-          if(n<8000) throw new Error('sitemap only lists '+n+' URLs');
+          if(n<2400) throw new Error('sitemap only lists '+n+' URLs');
           console.log('sitemap.xml OK, '+n+' URLs');"
 
       - name: Check for broken references
@@ -74,6 +82,37 @@ jobs:
           mkdir -p _deploy-config
           cp web.config 404.htm _deploy-config/
 
+      # The full scope excludes every .jpg, which protects the 5.3 GB archive but
+      # also means the small generated thumbnails can never reach the server. This
+      # scope ships exactly those: the /you/ event thumbnails, the /catalog/ grid
+      # images and the page chrome under /images/. `git ls-files` is the filter,
+      # so what gets staged is by definition the tracked site furniture and never
+      # a photograph.
+      - name: Stage the images payload
+        if: ${{ inputs.scope == 'images' }}
+        run: |
+          mkdir -p _deploy-images
+          git ls-files -z 'you/*/*/thumbnail.jpg' 'catalog/**/*.jpg' 'images/**' \
+            | xargs -0 -r -I{} cp --parents {} _deploy-images/
+          echo "staged $(find _deploy-images -type f | wc -l) file(s), $(du -sh _deploy-images | cut -f1)"
+
+      # The exclude list only makes sense for the `full` scope, which syncs the
+      # whole tree. The staged scopes have already been narrowed to exactly what
+      # should ship, and applying the full list to them would be actively wrong:
+      # `**/*.jpg` would filter out every last file of the images payload.
+      - name: Build the exclude list
+        id: excludes
+        run: |
+          {
+            echo 'list<<EXCLUDE_EOF'
+            if [ "${{ inputs.scope }}" = "full" ]; then
+              grep -v '^\s*#' .github/deploy-exclude.txt | grep -v '^\s*$'
+            else
+              printf '%s\n' '**/.git*' '**/.git*/**'
+            fi
+            echo 'EXCLUDE_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
@@ -82,26 +121,16 @@ jobs:
           password: ${{ secrets.AZURE_FTP_PASSWORD }}
           protocol: ftps
           dry-run: ${{ inputs.dry-run }}
-          local-dir: ${{ inputs.scope == 'config-only' && './_deploy-config/' || './' }}
-          # Photographs live only on the server. Excluding them here means the
-          # sync never sees them as "deleted locally". The exclude list governs
-          # deletion as well as upload, so anything named here is left alone on
-          # the server rather than removed from it.
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/*.jpg
-            **/*.jpeg
-            **/node_modules/**
-            **/tools/**
-            **/*.md
-            _proto/**
-            # Superseded duplicate of you/2023. Nothing links into it and it is
-            # not in the sitemap, so shipping its 1,788 files would only spend
-            # 148 MB of the App Service quota on unreachable copies. Listing it
-            # here also means the sync never treats the server's copy as
-            # something to delete.
-            you/2023/Old/**
+          local-dir: ${{ inputs.scope == 'config-only' && './_deploy-config/' || inputs.scope == 'images' && './_deploy-images/' || './' }}
+          # One sync-state file per scope, and this matters more than it looks.
+          # The action decides what to delete by comparing the server's state file
+          # against the local directory. Share one file between scopes and the
+          # first `images` run after a `full` run would read a manifest listing
+          # the whole site, find only thumbnails on disk, and conclude that every
+          # page had been deleted. Separate manifests keep each scope's idea of
+          # "what I put there" to itself.
+          state-name: .ftp-deploy-${{ inputs.scope }}.json
+          exclude: ${{ steps.excludes.outputs.list }}
 
       # The deploy step reports success as soon as the last byte is written, which
       # says nothing about whether the site still works. This is the step that

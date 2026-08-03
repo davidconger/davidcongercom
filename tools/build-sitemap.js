@@ -40,6 +40,25 @@ const SKIP_DIRS = new Set([
  */
 const SKIP_PATHS = [/^galleries\/0000\//i, /^you\/\d{4}\/old\//i];
 
+/**
+ * Pages that exist, stay reachable, and do not belong in a sitemap.
+ *
+ * A sitemap is a request for crawl attention, and 74% of this one was spent on
+ * pages that are a single photograph wrapped in the same chrome as the event
+ * page that links to them -- 7,664 single-image pages and 372 "page 2 of 5"
+ * pages. Against 2,343 real gallery pages, that buried the archive in its own
+ * scaffolding. Search engines already reach these by following links; leaving
+ * them out of the sitemap points the crawl at the pages worth ranking.
+ *
+ * Nothing here is blocked, redirected or removed: every one of these URLs still
+ * answers exactly as it did.
+ */
+const SKIP_FROM_SITEMAP = [
+  /^you\/\d{4}\/[^/]+\/(?:page-\d+|gallery)\//i, // one photo per page
+  /^you\/\d{4}\/[^/]+\/page-\d+\.html?$/i,       // "page 2 of 5" splits
+  /^galleries\/\d{4}\/\d{2}\/[^/]+\/(?!index\.html?$)[^/]+\.html?$/i, // legacy per-frame pages
+];
+
 const pages = [];
 (function walk(dir) {
   let entries;
@@ -53,7 +72,7 @@ const pages = [];
 })(ROOT);
 
 const urls = [];
-const skipped = { fragment: 0, noindex: 0, excluded: 0, canonical: 0 };
+const skipped = { fragment: 0, noindex: 0, excluded: 0, thin: 0, canonical: 0 };
 
 /**
  * Two URLs name the same page. Percent-encoding is compared loosely because a
@@ -72,6 +91,7 @@ function sameUrl(a, b) {
 for (const file of pages) {
   const relRaw = path.relative(ROOT, file).replace(/\\/g, '/');
   if (SKIP_PATHS.some((re) => re.test(relRaw))) { skipped.excluded++; continue; }
+  if (SKIP_FROM_SITEMAP.some((re) => re.test(relRaw))) { skipped.thin++; continue; }
 
   const text = fs.readFileSync(file, 'utf8');
 
@@ -112,6 +132,7 @@ console.log(`  pages found        : ${pages.length}`);
 console.log(`  skipped, fragment  : ${skipped.fragment}`);
 console.log(`  skipped, noindex   : ${skipped.noindex}`);
 console.log(`  skipped, excluded  : ${skipped.excluded}`);
+console.log(`  skipped, thin      : ${skipped.thin}`);
 console.log(`  skipped, canonical : ${skipped.canonical}`);
 console.log(`  URLs written       : ${urls.length}`);
 console.log(`  size               : ${(Buffer.byteLength(xml) / 1048576).toFixed(2)} MB`);
