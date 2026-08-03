@@ -70,8 +70,19 @@ jobs:
           if(n<2400) throw new Error('sitemap only lists '+n+' URLs');
           console.log('sitemap.xml OK, '+n+' URLs');"
 
+      # The deploy runs from a git checkout, and git does not track the 43,000
+      # photographs -- so on a runner every <img> points at a file that is not
+      # there, and an unfiltered run reports ~48,500 broken references. Skipping
+      # image extensions checks what CI can actually see: page-to-page links,
+      # stylesheets and scripts. That is the failure mode this gate is for, since
+      # a bad bulk edit across 11,400 pages breaks relative paths, not filenames.
+      #
+      # 69 references are broken today and have been for years, nearly all inside
+      # archived trees whose relative paths broke when they were moved. The
+      # ceiling is what catches a change making it worse. Run it without the
+      # filter on a full local copy to check the image references too.
       - name: Check for broken references
-        run: node tools/check-links.js . --max-broken 140
+        run: node tools/check-links.js . --skip-ext jpg,jpeg --max-broken 90
 
       # web.config is the one file that can take the whole site down. Its rewrite
       # section has never run against real IIS, and if URL Rewrite were missing or

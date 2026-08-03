@@ -12,10 +12,19 @@
  *
  * Usage:
  *   node check-links.js <siteRoot> [--json <outFile>] [--limit N] [--max-broken N]
+ *                                  [--skip-ext jpg,jpeg]
  *
  * --max-broken makes this usable as a CI gate. The site carries a large number
  * of long-standing broken references inside archived trees, so "zero broken" is
  * not a reachable bar; what matters is that a bulk edit has not made it worse.
+ *
+ * --skip-ext exists because the deploy runs from a git checkout, and git does
+ * not track the photographs. On a developer's disk every .jpg is present and a
+ * full run is the real test; on a runner 43,000 of them are simply absent, so
+ * an unfiltered run reports about 48,500 "broken" image references and tells
+ * you nothing. CI passes `--skip-ext jpg,jpeg` and checks what it can actually
+ * see: page-to-page links, stylesheets and scripts -- which is precisely what a
+ * bad bulk edit across 11,400 pages breaks.
  */
 
 const fs = require('fs');
@@ -28,11 +37,19 @@ const limitIdx = args.indexOf('--limit');
 const reportLimit = limitIdx > -1 ? parseInt(args[limitIdx + 1], 10) : 40;
 const maxIdx = args.indexOf('--max-broken');
 const maxBroken = maxIdx > -1 ? parseInt(args[maxIdx + 1], 10) : null;
+const skipExtIdx = args.indexOf('--skip-ext');
+const skipExt = new Set(
+  skipExtIdx > -1
+    ? args[skipExtIdx + 1].split(',').map((e) => '.' + e.trim().replace(/^\./, '').toLowerCase())
+    : []
+);
 
 /** The first argument that is neither a flag nor a flag's value is the site
  *  root. Picking it positionally used to swallow `--json`, silently scanning a
  *  directory that did not exist and reporting a clean bill of health. */
-const flagValues = new Set([jsonIdx, limitIdx, maxIdx].filter((i) => i > -1).map((i) => i + 1));
+const flagValues = new Set(
+  [jsonIdx, limitIdx, maxIdx, skipExtIdx].filter((i) => i > -1).map((i) => i + 1)
+);
 const positional = args.filter((a, i) => !a.startsWith('--') && !flagValues.has(i));
 const siteRoot = path.resolve(positional[0] || '.');
 
@@ -97,6 +114,7 @@ walk(siteRoot);
 
 const broken = [];
 let refsChecked = 0;
+let refsSkipped = 0;
 const perExt = {};
 
 for (const page of pages) {
@@ -139,6 +157,11 @@ for (const page of pages) {
     const ext = isDirRef || !lastSeg.includes('.') ? '(dir)' : path.extname(lastSeg).toLowerCase();
     perExt[ext] = (perExt[ext] || 0) + 1;
 
+    if (skipExt.has(ext)) {
+      refsSkipped++;
+      continue;
+    }
+
     // A reference to a directory is served by its index page.
     const candidates = [
       targetRel,
@@ -160,6 +183,11 @@ console.log(`Site root       : ${siteRoot}`);
 console.log(`Files indexed   : ${filesLower.size.toLocaleString()}`);
 console.log(`Pages scanned   : ${pages.length.toLocaleString()}`);
 console.log(`Local refs      : ${refsChecked.toLocaleString()}`);
+if (skipExt.size) {
+  console.log(
+    `Skipped by ext  : ${refsSkipped.toLocaleString()} (${[...skipExt].join(', ')})`
+  );
+}
 console.log(`Broken refs     : ${broken.length.toLocaleString()}`);
 
 console.log('\nReferences by target type:');

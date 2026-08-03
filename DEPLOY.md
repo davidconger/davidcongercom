@@ -63,7 +63,7 @@ that has never seen any of it.
   so the sync can never delete the photographs from the server.
 - **Three gates run before the upload:** `web.config` must parse, `sitemap.xml`
   must parse with the correct namespace and more than 2,400 URLs, and
-  `check-links.js --max-broken 140` must pass.
+  `check-links.js --skip-ext jpg,jpeg --max-broken 90` must pass.
 - **A smoke test runs after a real upload** and fails the workflow if the site
   did not come back correctly.
 
@@ -72,6 +72,17 @@ broken references, nearly all of them inside archived trees whose relative paths
 broke when they were moved years ago. The gate checks that a change has not made
 things *worse* — which is exactly the failure mode of a bad bulk edit across
 11,454 pages.
+
+It runs with `--skip-ext jpg,jpeg`, and that is not a weakening of the check but
+a consequence of where it runs. The workflow deploys from a git checkout, and
+git does not track the photographs, so on a runner every `<img>` points at a
+file that is not there: an unfiltered run reports about 48,500 broken references
+and proves nothing. Filtered, it sees 69 — the page-to-page links, stylesheets
+and scripts — and those are what a bulk markup edit actually breaks.
+
+Run it unfiltered on a full local copy to check the image references too:
+
+    node tools/check-links.js . --max-broken 140
 
 ### Setting it up
 
