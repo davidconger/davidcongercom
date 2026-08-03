@@ -24,7 +24,6 @@ const TYPES = {
   '.ico': 'image/x-icon',
   '.xml': 'application/xml',
   '.txt': 'text/plain; charset=utf-8',
-  '.swf': 'application/x-shockwave-flash',
 };
 
 http

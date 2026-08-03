@@ -736,6 +736,50 @@ main.pageStream .legacyTable {
 }
 
 /* --------------------------------------------------------------------------
+   Radio station pages
+   -------------------------------------------------------------------------- */
+
+/*
+ * radio/index.htm, radio/kiss.htm and radio/nk2.htm are FrontPage-era tables
+ * whose lower cell carries a `stations_bottom*.jpg` background - a white to
+ * light-grey gradient. The site-wide dark theme paints body text #ffffff, so
+ * every word in that cell rendered white on near-white and was invisible:
+ * the station descriptions, the section labels, and the "Back" row alike.
+ *
+ * These pages were never part of the responsive pass, so rather than restyle
+ * the tables the text colour is simply scoped to the cells that carry the
+ * light background. Links keep their own colour and are unaffected.
+ */
+td[style*="stations_bottom"] {
+	color: #1a1a1a;
+}
+
+td[style*="stations_bottom"] hr {
+	border-color: #9a9a9a;
+}
+
+/*
+ * The same three pages nest 1000px layout tables whose first row is a single
+ * `colspan="2"` banner. The global `table-layout: fixed` above takes its
+ * column widths from that first row, and a lone colspan gives it nothing to
+ * go on, so the browser split the table in half: the 750px content column and
+ * the 250px photo column each measured 499px. That squeezed the station
+ * artwork and the text beside it while leaving 250px of dead space under the
+ * portraits. Automatic layout hands the declared widths back.
+ *
+ * Above 1040px only. Below it the fixed layout is what keeps these pages -
+ * which never went through the responsive pass - from scrolling sideways;
+ * the 1000px table plus the page's own padding needs 1014px of room, and a
+ * scrollbar takes the rest.
+ */
+@media (min-width: 1040px) {
+	.legacyTable--radio,
+	.legacyTable--radio table {
+		table-layout: auto;
+	}
+}
+
+/* --------------------------------------------------------------------------
    Footer
    -------------------------------------------------------------------------- */
 
