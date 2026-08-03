@@ -247,7 +247,7 @@ Properties worth knowing:
 Publishing an event is therefore: generate it with `tools/new-gallery.js`, run
 `sync-photos.js` for that folder, then commit and deploy the markup.
 
-#### Known backlog: the you_old conversion
+#### Known backlog: what the server has never held
 
 Converting `you_old/` into `/you/2009/`, `/you/2010/` and `/you/2011/` created 24
 events at addresses the server has never had photographs for. The pages are
@@ -260,7 +260,34 @@ live; every image on them 404s. Measured with `--dry-run`:
 | `you/2011` | 1,874 | 165.9 MB |
 | **total** | **3,666** | **288.4 MB** |
 
-This is the first real job for `sync-photos.js`.
+That turned out not to be the whole of it. Eleven of the 193 frames in the
+homepage rotator were 404ing, and chasing why found the same fault in
+`/galleries/`: 27 events across two months are live, their index pages answer
+200, and not one of their photographs is on the server. Nothing about the site
+showed it, because a gallery page with broken images still looks like a page.
+
+Probing the first photograph of every folder that holds any — 3,358 folders,
+32,245 photographs — puts the real figure at **59 folders and 2,153
+photographs**:
+
+| Tree | Folders | Photographs | |
+|---|---:|---:|---|
+| `you/2011` | 10 | 937 | `you_old` conversion |
+| `you/2010` | 11 | 694 | `you_old` conversion |
+| `you/2009` | 3 | 202 | `you_old` conversion |
+| `galleries/2019` | 22 | 207 | never uploaded |
+| `galleries/2018` | 7 | 78 | never uploaded |
+| `you/2018` | 3 | 18 | never uploaded |
+| `galleries/2016` | 2 | 15 | mostly the deliberately-404ed test galleries |
+| `galleries/2012` | 1 | 2 | ditto |
+
+Run `sync-photos.js` per tree, dry first. It decides what to send by asking the
+live site, so re-running costs nothing and resumes where it stopped.
+
+Worth re-probing after any bulk upload, and worth knowing that the count above
+is folder-level: it asks whether a folder's first photograph is present, so a
+folder that is only partly uploaded is not counted. `sync-photos.js` checks
+every file and will catch those.
 
 #### When to stop doing it this way
 
@@ -389,3 +416,36 @@ site keeps serving. That is why it ships first and alone.
 The gap in this story is that FTPS sync has no atomic unit: a revert is another
 11,900-file upload, not a swap. Zip deploy fixes that, and zip deploy needs the
 images out of `wwwroot` — which is the case for the storage split above.
+
+### If some URLs 500 and others are fine
+
+This happened on the first live `web.config`, and the shape of it points away
+from the cause, so it is worth recognising.
+
+Every URL with a file extension answered 200 — `/index.htm`, `/about.htm`,
+`/css/site.css`, `/js/featured-images.json`. Every extensionless URL answered
+500: `/`, `/you/`, every gallery directory, every missing page, and every
+flat-gallery redirect, since those land on a directory. A site serving
+`/index.htm` perfectly while `/` returns 500 is not a broken page and not a
+broken rewrite rule. Files with extensions are served by the native static file
+handler without ASP.NET being involved; extensionless URLs go through the
+managed pipeline. So that split means **the ASP.NET application is failing to
+start**, and only the requests that need it can show it.
+
+The cause was `<location path=".well-known">`. ASP.NET reads every `<location>`
+element in `web.config` during application startup and will not accept a path
+whose segment begins with a dot. Do not add one back — the comment in
+`web.config` says the same thing next to the code.
+
+Two things make this harder to diagnose than it should be:
+
+- `errorMode="Detailed"` does not help. The failure happens while configuration
+  is still loading, so what comes back is ASP.NET's generic "Runtime Error"
+  page, which names nothing.
+- `<customErrors mode="Off">` does not help either, for the same reason — the
+  setting is in the file that failed to load. That it changes nothing is itself
+  the confirmation that the fault is in startup rather than in a request.
+
+What did work was bisection: strip the file to the part known to be serving,
+deploy, confirm the site returns, then add sections back until it breaks. A
+`config-only` deploy is about forty seconds, so this costs minutes.
