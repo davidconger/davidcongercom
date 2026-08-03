@@ -200,15 +200,76 @@ thumbnails under `you/**/thumbnail.jpg` and `catalog/`, and the page chrome unde
 page chrome. These change whenever a tool regenerates them, so they need a
 deploy path.
 
-**Photographs are not in git and are never deployed.** 5.3 GB of originals live
-on the server and in the local OneDrive copy. Publishing an event is still:
-generate it with `tools/new-gallery.js`, upload that one folder over FTP, then
-commit and deploy the markup. The workflow picks up the new pages, and the
-`images` scope picks up the thumbnail; the full-size JPEGs go up once, by hand.
+**Photographs are not in git.** 5.3 GB of originals live on the server and in the
+local OneDrive copy. Putting them in git would mean a 5.3 GB clone, a 5.3 GB
+checkout on every CI run, and paying for LFS bandwidth to move bytes that never
+differ. They stay out.
 
 That exclusion is load-bearing. `**/*.jpg` in the full scope's exclude list is
 what guarantees a deploy can never delete the archive, which is why the `images`
 scope stages its payload separately with `git ls-files` rather than relaxing it.
+
+#### Why GitHub Actions cannot publish the photographs
+
+The runner checks out git. The originals are not in git. So no amount of
+workflow work can make the Action publish them — whatever sends the
+photographs has to run on a machine that actually holds them. That is not a
+limitation of the pipeline, it is a direct consequence of the tier split, and
+it is the right trade: the 80 MB that CI *can* reproduce is in git, and the
+5.3 GB it cannot is handled separately.
+
+#### `tools/sync-photos.js`
+
+Replaces opening an FTP client and dragging a folder. It works out what the
+server is missing by asking the live site — every photograph has a public URL,
+so a `HEAD` request is an exact answer to "is this already up?". No FTP listing
+of 80,000 files, no local state file to drift, nothing to seed on a first run.
+
+    $env:AZURE_FTP_SERVER   = "waws-prod-ch1-011.ftp.azurewebsites.windows.net"
+    $env:AZURE_FTP_USERNAME = "davidconger\$davidconger"
+    $env:AZURE_FTP_PASSWORD = "..."
+
+    node tools/sync-photos.js you/2026/newevent --dry-run
+    node tools/sync-photos.js you/2026/newevent
+
+Properties worth knowing:
+
+- **It only ever uploads.** There is no delete path in the script, so it carries
+  the same guarantee the workflow gets from excluding `*.jpg`.
+- **Re-running is free and safe.** Anything already up costs one `HEAD` and is
+  skipped, so an interrupted run is resumed by repeating the command.
+- **It skips anything git tracks**, because those are the `images` scope's job
+  and two publishers on one file is how files get clobbered.
+- **The path argument is required**, so a mistyped invocation cannot start
+  walking all 5.3 GB.
+- It shells out to `curl` for FTPS, so `tools/` still has no npm dependencies.
+
+Publishing an event is therefore: generate it with `tools/new-gallery.js`, run
+`sync-photos.js` for that folder, then commit and deploy the markup.
+
+#### Known backlog: the you_old conversion
+
+Converting `you_old/` into `/you/2009/`, `/you/2010/` and `/you/2011/` created 24
+events at addresses the server has never had photographs for. The pages are
+live; every image on them 404s. Measured with `--dry-run`:
+
+| Scope | Missing | Size |
+|---|---:|---:|
+| `you/2009` | 404 | 27.4 MB |
+| `you/2010` | 1,388 | 95.1 MB |
+| `you/2011` | 1,874 | 165.9 MB |
+| **total** | **3,666** | **288.4 MB** |
+
+This is the first real job for `sync-photos.js`.
+
+#### When to stop doing it this way
+
+The B1 plan has a 10 GB disk and the archive is already 5.3 GB before the
+server's own FrontPage cruft. Every event adds to it and nothing is ever
+removed. The structural fix is to stop storing photographs on the App Service
+disk at all — see "split storage from markup" below. Until then, watch the
+quota; running out of disk on the plan that serves the site is a worse failure
+than any deploy bug in this document.
 
 ## Why not zip deploy
 
