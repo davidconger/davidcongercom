@@ -106,23 +106,39 @@ mean `/site/wwwroot/`.
 section carries a 747-entry map redirecting every pre-2012 gallery address to its
 new home, and that section has never been executed by real IIS. If the URL
 Rewrite module were unavailable, or the map were rejected, **every page would
-answer 500**. So it goes up on its own, first, and is verified before anything
-else moves.
+answer 500**. So it goes up on its own and is verified in isolation, before
+anything else can confuse the diagnosis.
+
+It does not go up *first*, though, and the reason is worth writing down. The
+server was measured before the first deploy:
+
+    /galleries/akon.htm          200   the old flat page, still there
+    /galleries/2011/05/akon/     403   the photographs are there, the page is not
+
+Every redirect in the map points at an address of the second kind. The
+photographs have lived under `YYYY/MM/` since 2012, but the `index.htm` that
+makes each one a page is new work that has never been uploaded. Ship the config
+before the content and all 747 of those long-published URLs would answer a 301
+into a 403 for as long as the content upload takes. So the content goes first,
+and the redirect map is switched on once it has somewhere to point.
+
+`web.config` and `404.htm` are excluded from the `full` scope precisely so this
+ordering is possible - see `.github/deploy-exclude.txt`.
 
 | # | `scope` | `dry-run` | What it proves |
 |---|---|---|---|
-| 1 | `config-only` | on | The gates pass and the FTPS credentials work. |
-| 2 | `config-only` | **off** | IIS accepted the rewrite map. `web.config` and `404.htm` are the only files that moved. |
-| 3 | `full` | on | The list of the ~11,900 files about to change looks right, and nothing is queued for deletion. |
-| 4 | `full` | **off** | The site is live and modern. |
-| 5 | `images` | on, then **off** | The 3,012 tracked thumbnails and page images reach the server. |
+| 1 | `config-only` | on | The gates pass and the FTPS credentials work. Uploads nothing. |
+| 2 | `full` | on | The list of files about to change looks right, and nothing is queued for deletion. |
+| 3 | `full` | **off** | Every page and stylesheet is on the server. The redirect targets now exist. |
+| 4 | `config-only` | **off** | IIS accepted the rewrite map. `web.config` and `404.htm` are the only files that moved. |
+| 5 | `images` | on, then **off** | The tracked thumbnails and page images reach the server. |
 
 Run 5 is last because it is the only one that is not urgent: until it runs, the
-252 newly generated `/you/` thumbnails are referenced by pages that are already
+newly generated `/you/` thumbnails are referenced by pages that are already
 live, so the archive grid will show gaps. Run it with `dry-run` on first and
 confirm the log lists only files under `you/`, `catalog/` and `images/`.
 
-Run 2 is the one that matters. It uploads two small files, waits, then runs:
+Run 4 is the one that matters. It uploads two small files, waits, then runs:
 
     node tools/smoke-test.js https://www.davidconger.com \
       --only=home,redirect-issued,notfound,cache
@@ -133,14 +149,21 @@ Run 2 is the one that matters. It uploads two small files, waits, then runs:
 - `cache` confirms the new `Cache-Control` header is actually being applied to a
   photograph, which today has no cache header at all.
 
-**If run 2 fails, delete `web.config` from the server over FTP.** IIS reverts to
-its default behaviour instantly and the old site keeps serving. Nothing else has
-changed at that point, so there is nothing else to undo.
+**If run 4 fails, delete `web.config` from the server over FTP.** IIS reverts to
+its default behaviour instantly and the site keeps serving. Because the full
+scope excludes the file, no later content deploy will put it back.
 
-Run 4 runs the full ten-check smoke test, which additionally confirms the
+Note that the first run of any scope uploads without deleting: with no state
+file on the server the action reports `Server Files: 0` and treats everything as
+new. Deletions only become possible from the second run of that scope onward,
+which is why run 2's empty delete list is worth confirming rather than assuming.
+
+Run 3 runs the full ten-check smoke test, which additionally confirms the
 stylesheet, `robots.txt` and the 2,734-URL sitemap all shipped, that a
 directory URL resolves, that a long-published URL like
 `/galleries/2019/12/deadmau5/index.htm` is untouched, and that `/you/` is up.
+The `notfound` and `cache` checks may fail there, since they need the config
+that run 4 has not yet shipped.
 
 You can run that suite by hand at any time:
 

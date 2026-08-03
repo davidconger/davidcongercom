@@ -16,6 +16,7 @@
  *
  *   node tools/smoke-test.js https://www.davidconger.com
  *   node tools/smoke-test.js https://www.davidconger.com --only home,redirect,notfound
+ *   node tools/smoke-test.js https://www.davidconger.com --skip cache
  */
 
 const https = require('https');
@@ -23,8 +24,12 @@ const http = require('http');
 const { URL } = require('url');
 
 const base = (process.argv[2] || 'https://www.davidconger.com').replace(/\/$/, '');
-const onlyArg = process.argv.find(a => a.startsWith('--only='));
-const only = onlyArg ? onlyArg.slice('--only='.length).split(',').map(s => s.trim()) : null;
+function listArg(flag) {
+  const a = process.argv.find(x => x.startsWith(flag + '='));
+  return a ? a.slice(flag.length + 1).split(',').map(s => s.trim()).filter(Boolean) : null;
+}
+const only = listArg('--only');
+const skip = listArg('--skip');
 
 function request(url, chain = []) {
   return new Promise((resolve, reject) => {
@@ -128,16 +133,21 @@ const CHECKS = [
 ];
 
 (async () => {
-  const checks = only ? CHECKS.filter(c => only.includes(c[0])) : CHECKS;
+  let checks = only ? CHECKS.filter(c => only.includes(c[0])) : CHECKS;
+  if (skip) checks = checks.filter(c => !skip.includes(c[0]));
 
-  const unknown = only ? only.filter(id => !CHECKS.some(c => c[0] === id)) : [];
+  const unknown = [...(only || []), ...(skip || [])]
+    .filter(id => !CHECKS.some(c => c[0] === id));
   if (unknown.length) {
     console.error('No such check: ' + unknown.join(', '));
     console.error('Known checks: ' + CHECKS.map(c => c[0]).join(', '));
     process.exit(2);
   }
 
-  console.log('Smoke testing ' + base + (only ? ' (' + only.join(', ') + ')' : '') + '\n');
+  const scope = [];
+  if (only) scope.push('only ' + only.join(', '));
+  if (skip) scope.push('without ' + skip.join(', '));
+  console.log('Smoke testing ' + base + (scope.length ? ' (' + scope.join('; ') + ')' : '') + '\n');
   let failed = 0;
 
   for (const [, name, path, verify] of checks) {

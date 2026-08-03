@@ -15,6 +15,16 @@
 **/*.md
 _proto/**
 
+# The two files the `config-only` scope ships. They are excluded here so that
+# exactly one scope owns them, which is what makes the staged first deploy work:
+# web.config carries the 747-entry redirect map, and those redirects point at
+# pages that only exist once a content deploy has run. Content therefore has to
+# land first, and it can only land first if the full scope leaves web.config
+# alone. It also keeps the rollback honest - if the config has to be pulled off
+# the server, a later content deploy will not quietly put it back.
+web.config
+404.htm
+
 # Photographs. ~5.3 GB of originals live only on the server and are uploaded by
 # hand. Excluding them is what guarantees a deploy can never delete the archive.
 # The small generated thumbnails are tracked in git and ship under the separate

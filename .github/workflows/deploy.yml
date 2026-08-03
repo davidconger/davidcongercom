@@ -174,15 +174,23 @@ jobs:
       # would notice a site-wide 500, a redirect map that never loaded, or cache
       # headers that silently did not take effect.
       #
-      # After the config-only stage most of the site is still the old files, so
-      # only the checks that config alone can satisfy are run.
+      # Four of the checks - the two redirect checks, the custom 404 and the cache
+      # lifetime - test behaviour that only web.config produces, and web.config
+      # ships in its own scope, after the content. So rather than assume, ask the
+      # server: X-Content-Type-Options is a header nothing but our web.config
+      # sends. If it is absent the config has not shipped yet and those four
+      # checks are not applicable; once it is there, every run tests everything.
       - name: Smoke test the live site
         if: ${{ !inputs.dry-run }}
+        env:
+          SITE: https://www.davidconger.com
         run: |
           sleep 20
           if [ "${{ inputs.scope }}" = "config-only" ]; then
-            node tools/smoke-test.js https://www.davidconger.com \
-              --only=home,redirect-issued,notfound,cache
+            node tools/smoke-test.js "$SITE" --only=home,redirect-issued,notfound,cache
+          elif curl -sS -o /dev/null -D - "$SITE/" | grep -qi '^x-content-type-options:'; then
+            node tools/smoke-test.js "$SITE"
           else
-            node tools/smoke-test.js https://www.davidconger.com
+            echo "web.config has not been deployed yet, so the checks that depend on it are not applicable."
+            node tools/smoke-test.js "$SITE" --skip=redirect,redirect-issued,notfound,cache
           fi
