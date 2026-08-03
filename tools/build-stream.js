@@ -49,6 +49,11 @@ const SITE = 'https://www.davidconger.com';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
 
+/* galleries/0000/ is not a year -- it holds the retired generator's page
+   templates. A bare four-digit test picked it up, which built a stream page
+   for it and left the index describing the archive as "0000-2020". */
+const YEAR_DIR = /^(?:19|20)\d{2}$/;
+
 const argv = process.argv.slice(2);
 const years = [];
 let maxPhotos = 3;
@@ -63,6 +68,8 @@ for (let i = 0; i < argv.length; i++) {
   else if (argv[i] === '--limit') limit = Number(argv[++i]);
 }
 if (!years.length && !indexOnly && !navOnly) { console.error('Usage: node tools/build-stream.js --year 2019 [--year 2020] [--photos 3] | --index-only | --nav-only'); process.exit(1); }
+const badYear = years.find((y) => !YEAR_DIR.test(y));
+if (badYear) { console.error(`Not a year: ${badYear}`); process.exit(1); }
 
 const escapeHtml = (s) => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -87,12 +94,18 @@ function jpegSize(file) {
 
 /* ------------------------------------------------------------- source data */
 
+/* "February 19th, 2010" and "August 7 and 8, 2010" are how eighteen of the
+   catalog entries write their date. Ordinal suffixes and two-day ranges are
+   both accepted here; a range sorts on its first day and prints as written,
+   which is what those shows -- Seafair's hydro races and the Blue Angels --
+   actually were. */
 function eventDate(desc) {
-  const m = /([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})\s*$/.exec(desc);
+  const m = /([A-Z][a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*(?:and|-|–|to)\s*(\d{1,2})(?:st|nd|rd|th)?)?\s*,\s*(\d{4})\s*$/.exec(desc);
   if (!m) return null;
   const mon = MONTHS.indexOf(m[1]);
   if (mon < 0) return null;
-  return { y: +m[3], m: mon + 1, d: +m[2], text: `${m[1]} ${+m[2]}, ${m[3]}` };
+  const text = m[3] ? `${m[1]} ${+m[2]} and ${+m[3]}, ${m[4]}` : `${m[1]} ${+m[2]}, ${m[4]}`;
+  return { y: +m[4], m: mon + 1, d: +m[2], text };
 }
 
 /* --------------------------------------------------------------- venue name
@@ -111,13 +124,28 @@ function eventDate(desc) {
 
 const STATE = /^[A-Z]{2}$/;
 const DATE_TAIL = /,?\s*[A-Z][a-z]+\s+\d{1,2},\s*\d{4}\s*$/;
+
+/* Descriptions are written "<head>. <Month D, YYYY>", so once DATE_TAIL has
+   taken the date off there is a "." left dangling on the end. Eighteen entries
+   write the date in a shape DATE_TAIL does not recognise -- ordinals
+   ("February 19th, 2010") and two-day ranges ("August 7 and 8, 2010") -- and
+   for those the whole date is still there.
+
+   Both are removed by cutting at the last period, but only when what follows
+   that period is a date or nothing. Cutting at any last period, as this used
+   to, truncates every artist whose name ends in one: "Louis C.K., White River
+   Amphitheatre" became "Louis C.K", "Low vs. Diamond" became "Low vs" and
+   "U.S.E." became "U.S.E". */
+const DATE_REMNANT =
+  /^\s*(?:[A-Z][a-z]+\s+\d{1,2}(?:st|nd|rd|th)?(?:\s*(?:and|-|–|to)\s*\d{1,2}(?:st|nd|rd|th)?)?\s*,\s*\d{4})?\s*$/;
+
 let venueVocab = null;
 
 /** Description -> comma-separated parts, with the trailing date removed. */
 function headParts(desc) {
   let head = String(desc).replace(DATE_TAIL, '');
   const cut = head.lastIndexOf('.');
-  if (cut > 0) head = head.slice(0, cut);
+  if (cut > 0 && DATE_REMNANT.test(head.slice(cut + 1))) head = head.slice(0, cut);
   return head.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
@@ -145,7 +173,7 @@ function venueVocabulary() {
   const catalog = path.join(ROOT, 'catalog');
   if (fs.existsSync(catalog)) {
     for (const year of fs.readdirSync(catalog, { withFileTypes: true })) {
-      if (!year.isDirectory() || !/^\d{4}$/.test(year.name)) continue;
+      if (!year.isDirectory() || !YEAR_DIR.test(year.name)) continue;
       const dataDir = path.join(catalog, year.name, '_data');
       if (!fs.existsSync(dataDir)) continue;
       for (const f of fs.readdirSync(dataDir)) {
@@ -596,7 +624,7 @@ function featuredByYear() {
 
 function renderIndex() {
   const years = fs.readdirSync(OUT, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && /^\d{4}$/.test(e.name))
+    .filter((e) => e.isDirectory() && YEAR_DIR.test(e.name))
     .map((e) => e.name)
     .filter((y) => fs.existsSync(path.join(OUT, y, 'index.htm')))
     .sort()
@@ -716,7 +744,7 @@ ${footer()}
    here is what left 2020 with both arrows greyed out and no way back to 2019. */
 function knownYears(building) {
   const onDisk = fs.readdirSync(OUT, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && /^\d{4}$/.test(e.name)
+    .filter((e) => e.isDirectory() && YEAR_DIR.test(e.name)
       && fs.existsSync(path.join(OUT, e.name, 'index.htm')))
     .map((e) => e.name);
   return [...new Set([...onDisk, ...building])].sort();
@@ -757,6 +785,14 @@ if (!indexOnly) {
   for (const year of years) {
     const list = shows(year);
     console.log(`\n=== ${year}: ${list.length} show(s), ${list.reduce((n, s) => n + s.frames.length, 0)} frame(s)`);
+    /* A year with nothing to show gets no page. The 2008 galleries are index
+       pages whose photographs were never in the tree, so building the year
+       wrote an empty stream and then advertised it in the year bar and on
+       galleries/index.htm -- an entry leading nowhere. */
+    if (!list.length) {
+      console.error(`  ! ${year} has no frames; leaving galleries/${year}/index.htm alone`);
+      continue;
+    }
     data.set(year, list);
     built.push(year);
   }
