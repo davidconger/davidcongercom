@@ -532,6 +532,7 @@ hr {
 h1#catalogTitle,
 h1#listingTitle,
 h1.pageHeader,
+h2.pageHeader,
 h1.headerTextMain {
 	margin: 0;
 }

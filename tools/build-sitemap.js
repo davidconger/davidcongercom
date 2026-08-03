@@ -53,7 +53,21 @@ const pages = [];
 })(ROOT);
 
 const urls = [];
-const skipped = { fragment: 0, noindex: 0, excluded: 0 };
+const skipped = { fragment: 0, noindex: 0, excluded: 0, canonical: 0 };
+
+/**
+ * Two URLs name the same page. Percent-encoding is compared loosely because a
+ * hand-written canonical spells an apostrophe or a space literally where
+ * encodeURIComponent would not, and a trailing slash is not a difference.
+ */
+function sameUrl(a, b) {
+  const norm = (u) => {
+    let s = u.trim().replace(/&amp;/g, '&').replace(/\/$/, '');
+    try { s = decodeURI(s); } catch { /* leave a malformed escape as written */ }
+    return s.toLowerCase();
+  };
+  return norm(a) === norm(b);
+}
 
 for (const file of pages) {
   const relRaw = path.relative(ROOT, file).replace(/\\/g, '/');
@@ -72,6 +86,13 @@ for (const file of pages) {
   rel = rel.replace(/(^|\/)index\.html?$/i, '$1');
 
   const loc = ORIGIN + '/' + rel.split('/').map(encodeURIComponent).join('/');
+
+  // A page that names a different page as its canonical is a duplicate. It
+  // stays live and reachable, but a sitemap should only ever offer the
+  // original -- listing both is a contradiction search engines have to resolve.
+  const declared = /<link[^>]+rel\s*=\s*["']canonical["'][^>]*href\s*=\s*(["'])([\s\S]*?)\1/i.exec(text);
+  if (declared && !sameUrl(declared[2], loc)) { skipped.canonical++; continue; }
+
   urls.push({ loc, lastmod: fs.statSync(file).mtime.toISOString().slice(0, 10) });
 }
 
@@ -91,6 +112,7 @@ console.log(`  pages found        : ${pages.length}`);
 console.log(`  skipped, fragment  : ${skipped.fragment}`);
 console.log(`  skipped, noindex   : ${skipped.noindex}`);
 console.log(`  skipped, excluded  : ${skipped.excluded}`);
+console.log(`  skipped, canonical : ${skipped.canonical}`);
 console.log(`  URLs written       : ${urls.length}`);
 console.log(`  size               : ${(Buffer.byteLength(xml) / 1048576).toFixed(2)} MB`);
 

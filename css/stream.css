@@ -1953,20 +1953,60 @@ main.prose.pageStream {
 	color: #8f8f8f;
 }
 
-/* The same offer to look further back, at the foot of the grid rather than
-   above it, where it is the last thing on a long page and has to carry a
-   little more weight to be seen. */
-.pageStream .catalogOutro {
-	padding-top: 22px;
+/* Every earlier season, folded in from the old previous.htm so the whole run of
+   events lives on one page. A hairline sets it apart from the thumbnail grid
+   above without making it look like a different page. */
+.pageStream .youArchive {
+	margin-top: 34px;
+	padding-top: 28px;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
 	font-size: 15px;
-	color: #9a9a9a;
+	line-height: 1.9;
+	color: #c8c8c8;
 	text-align: center;
+}
+
+/* Long event names wrap on a phone; keep them off the edge of the screen. */
+@media (max-width: 620px) {
+	.pageStream .youArchive {
+		padding-left: 14px;
+		padding-right: 14px;
+	}
+}
+
+.pageStream .youArchive .pageHeader {
+	margin-bottom: 4px;
+}
+
+.pageStream .youArchive .yearHeader {
+	margin: 30px 0 6px;
+	font-size: 18px;
+}
+
+.pageStream .youArchive .pageHeader + .yearHeader {
+	margin-top: 18px;
+}
+
+.pageStream .youArchive .yearHeader + br {
+	display: none;
+}
+
+.pageStream .youArchive a:link,
+.pageStream .youArchive a:visited {
+	color: #dcdcdc;
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 255, 255, 0.28);
+	text-underline-offset: 3px;
+}
+
+.pageStream .youArchive a:hover,
+.pageStream .youArchive a:focus {
+	color: #ffffff;
+	text-decoration-color: rgba(255, 255, 255, 0.75);
 }
 
 .pageStream #catalogNav a:link,
 .pageStream #catalogNav a:visited,
-.pageStream .catalogOutro a:link,
-.pageStream .catalogOutro a:visited,
 .pageStream #dcCatalogNav a:link,
 .pageStream #dcCatalogNav a:visited,
 .pageStream #dcListingNav a:link,
@@ -1979,8 +2019,6 @@ main.prose.pageStream {
 
 .pageStream #catalogNav a:hover,
 .pageStream #catalogNav a:focus,
-.pageStream .catalogOutro a:hover,
-.pageStream .catalogOutro a:focus,
 .pageStream #dcCatalogNav a:hover,
 .pageStream #dcCatalogNav a:focus,
 .pageStream #dcListingNav a:hover,
