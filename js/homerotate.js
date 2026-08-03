@@ -45,7 +45,7 @@
     return m ? +m[1] : 0;
   }
 
-  function pick(items, count) {
+  function rank(items) {
     if (!items.length) return [];
 
     var oldest = Infinity;
@@ -65,7 +65,12 @@
 
     keyed.sort(function (a, b) { return b.key - a.key; });
 
-    return keyed.slice(0, Math.min(count, keyed.length)).map(function (k) {
+    /* The whole ranking is returned, not just the frames that get shown. The
+       tail is the reserve: if a photograph turns out not to be on the server,
+       the slide it was in takes the next item from it rather than sitting there
+       as a broken image. Ranking everything once means a replacement is drawn
+       from the same weighted order as the original pick. */
+    return keyed.map(function (k) {
       return k.item;
     });
   }
@@ -84,31 +89,32 @@
     return n;
   }
 
-  function buildSlide(item, index) {
-    var slide = el('div', 'showSlide' + (index === 0 ? ' is-active' : ''));
+  function fillSlide(slide, item, eager) {
     if (item.cap) {
       slide.style.setProperty('--cap-top', item.cap[0]);
       slide.style.setProperty('--cap-bot', item.cap[1]);
       slide.style.setProperty('--cap-fg', item.cap[2]);
+    } else {
+      slide.style.removeProperty('--cap-top');
+      slide.style.removeProperty('--cap-bot');
+      slide.style.removeProperty('--cap-fg');
     }
-    if (index !== 0) slide.setAttribute('aria-hidden', 'true');
 
-    var img = el('img');
+    var img = slide.querySelector('img');
     img.width = item.width || 640;
     img.height = item.height || 426;
     img.alt = item.artist || '';
-    img.decoding = 'async';
-    if (index === 0) {
+    img.removeAttribute('data-src');
+    if (eager) {
       img.src = item.image;
-      img.setAttribute('fetchpriority', 'high');
     } else {
+      img.removeAttribute('src');
       img.setAttribute('data-src', item.image);
     }
-    slide.appendChild(img);
 
-    var caption = el('a', 'showCaption');
+    var caption = slide.querySelector('.showCaption');
     caption.href = item.gallery;
-    if (index !== 0) caption.tabIndex = -1;
+    while (caption.firstChild) caption.removeChild(caption.firstChild);
 
     var artist = el('span', 'showArtist');
     artist.textContent = item.artist || '';
@@ -125,13 +131,36 @@
       d.textContent = item.date;
       caption.appendChild(d);
     }
+  }
 
+  function buildSlide(item, index) {
+    var slide = el('div', 'showSlide' + (index === 0 ? ' is-active' : ''));
+    if (index !== 0) slide.setAttribute('aria-hidden', 'true');
+
+    var img = el('img');
+    img.decoding = 'async';
+    if (index === 0) img.setAttribute('fetchpriority', 'high');
+    slide.appendChild(img);
+
+    var caption = el('a', 'showCaption');
+    if (index !== 0) caption.tabIndex = -1;
     slide.appendChild(caption);
+
+    fillSlide(slide, item, index === 0);
     return slide;
+  }
+
+  function dotLabel(index, item) {
+    return 'Show photo ' + (index + 1) + ': ' + ((item && item.artist) || '');
   }
 
   function hydrate(frame) {
     var slides = frame.querySelectorAll('.showSlide');
+    /* The MutationObserver that calls this runs as a microtask, so it can fire
+       after the frame it was queued for has already been emptied by a slide
+       being dropped. Without this the modulo below divides by zero and the
+       lookahead indexes past the end. */
+    if (!slides.length) return;
     var active = 0;
     for (var i = 0; i < slides.length; i++) {
       if (slides[i].classList.contains('is-active')) active = i;
@@ -151,10 +180,75 @@
     var dotHost = show && show.querySelector('.showDots');
     if (!show || !frame || !items || !items.length) return;
 
-    var slots = pick(items, SLOTS);
+    var ranked = rank(items);
+    var slots = ranked.slice(0, SLOTS);
+    /* Everything the pick did not use, kept in the same weighted order, ready
+       to stand in for a frame whose photograph turns out to be missing. */
+    var reserve = ranked.slice(SLOTS);
+    var showing = slots.slice();
+
+    /* A frame in the pool can name a photograph that is not on the server. The
+       pool is generated from the local archive, and the archive is published
+       separately from the markup, so an event that has not been uploaded yet
+       is listed here and 404s when the browser asks for it. That used to put a
+       broken image in the middle of the homepage, which is a worse failure
+       than the missing photograph itself: it is the first thing a visitor
+       sees, and it looks like the site is broken rather than one gallery being
+       incomplete. Swapping in the next ranked frame instead means the rotator
+       degrades to a slightly smaller pool and nothing shows. */
+    function onImageError(e) {
+      var slide = e.target.parentNode;
+      var i = Array.prototype.indexOf.call(frame.children, slide);
+      if (i < 0) return;
+
+      if (reserve.length) {
+        var next = reserve.shift();
+        showing[i] = next;
+        fillSlide(slide, next, true);
+        if (dotHost && dotHost.children[i]) {
+          dotHost.children[i].setAttribute('aria-label', dotLabel(i, next));
+        }
+        return;
+      }
+      dropSlide(i);
+    }
+
+    function dropSlide(i) {
+      var slide = frame.children[i];
+      if (!slide) return;
+      var wasActive = slide.classList.contains('is-active');
+
+      frame.removeChild(slide);
+      showing.splice(i, 1);
+      if (dotHost && dotHost.children[i]) dotHost.removeChild(dotHost.children[i]);
+      if (dotHost) {
+        for (var n = 0; n < dotHost.children.length; n++) {
+          dotHost.children[n].setAttribute('data-index', String(n));
+          dotHost.children[n].setAttribute('aria-label', dotLabel(n, showing[n]));
+        }
+      }
+
+      if (!frame.children.length) {
+        show.setAttribute('hidden', '');
+        return;
+      }
+      if (wasActive) {
+        var take = frame.children[i] || frame.children[0];
+        var at = Array.prototype.indexOf.call(frame.children, take);
+        take.classList.add('is-active');
+        take.removeAttribute('aria-hidden');
+        if (dotHost && dotHost.children[at]) {
+          dotHost.children[at].setAttribute('aria-selected', 'true');
+        }
+      }
+      if (frame.children.length < 2) show.classList.remove('has-rotator');
+      hydrate(frame);
+    }
 
     slots.forEach(function (item, i) {
-      frame.appendChild(buildSlide(item, i));
+      var slide = buildSlide(item, i);
+      slide.querySelector('img').addEventListener('error', onImageError);
+      frame.appendChild(slide);
     });
 
     if (dotHost && slots.length > 1) {
@@ -164,7 +258,7 @@
         dot.setAttribute('role', 'tab');
         dot.setAttribute('data-index', String(i));
         dot.setAttribute('aria-selected', String(i === 0));
-        dot.setAttribute('aria-label', 'Show photo ' + (i + 1) + ': ' + item.artist);
+        dot.setAttribute('aria-label', dotLabel(i, item));
         dotHost.appendChild(dot);
       });
     }
