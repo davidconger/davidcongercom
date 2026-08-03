@@ -583,6 +583,80 @@ h1.headerTextMain {
 }
 
 /* --------------------------------------------------------------------------
+   Legacy layout tables
+
+   Thirteen pages were laid out with a FrontPage-era table whose columns
+   declared pixel widths. Those widths have been taken off the markup by
+   tools/fluid-legacy-tables.js, because the global `table { max-width: 100% }`
+   above cannot override them: when the specified column widths add up to more
+   than the table's width, the sum becomes the table's used width. Each table
+   is now tagged with the shape it draws, and gets that shape back fluidly.
+
+   The max-widths match what each page measured before the change, so nothing
+   moves on a desktop.
+   -------------------------------------------------------------------------- */
+
+main.pageStream .legacyTable {
+	width: 100%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/* A single cell holding a long column of links: the four site-wide index
+   pages, byartist / bydate / bydate_older / byvenue. */
+.legacyTable--list {
+	max-width: 680px;
+}
+
+/* A column of links beside a column of photographs, on seven festival pages. */
+.legacyTable--fest {
+	max-width: 720px;
+}
+
+/* Rows of thumbnail, caption, thumbnail on other/index.htm. Sized by content
+   so the two 75px photographs keep their width and the caption takes the
+   rest, rather than all three columns splitting the width equally. */
+.legacyTable--thumb {
+	max-width: 500px;
+	table-layout: auto;
+}
+
+/* Banner thumbnails three across on galleries/index_old.htm. Left on the
+   default fixed layout: with automatic layout the 200px images would set a
+   minimum width the table could not shrink below. */
+.legacyTable--grid {
+	max-width: 700px;
+}
+
+@media (min-width: 720px) {
+	.legacyTable--fest td:first-child {
+		width: 63%;
+	}
+
+	.legacyTable--fest td + td {
+		width: 37%;
+	}
+}
+
+/* Below the width the two festival columns need, put the photographs under
+   the links instead of beside them. Scoped to this one shape on purpose --
+   other legacy tables, such as the three-day column lists on the Bumbershoot
+   pages, carry real tabular meaning that stacking would destroy. */
+@media (max-width: 719px) {
+	.legacyTable--fest,
+	.legacyTable--fest tbody,
+	.legacyTable--fest tr,
+	.legacyTable--fest td {
+		display: block;
+		width: auto;
+	}
+
+	.legacyTable--fest td + td {
+		margin-top: 18px;
+	}
+}
+
+/* --------------------------------------------------------------------------
    Featured photographs mosaic (galleries/featured.htm)
 
    Replaces two fixed 650px tables of mixed 150x100 and 100x150 thumbnails.
