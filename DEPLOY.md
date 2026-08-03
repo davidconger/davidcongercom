@@ -223,6 +223,56 @@ live in `wwwroot`:
 Zip deploy becomes the obvious choice the moment the images move out — not
 before.
 
+There is a third API, though, and it is worth knowing about because it behaves
+nothing like the other two. Kudu exposes **three** different things called zip
+deployment and their deletion semantics differ completely:
+
+| Endpoint | Deletes? |
+|---|---|
+| `az webapp deploy --type zip`, i.e. `/api/publish?type=zip` | Yes — OneDeploy defaults to `clean=true` and removes anything not in the zip |
+| `/api/zipdeploy` | Sometimes — defaults to `clean=false` but still deletes files its own previous manifest recorded |
+| `PUT /api/zip/site/wwwroot/` | **No.** It extracts over what is there and touches nothing else |
+
+The last one is described in Kudu's own source as "more of a PATCH than a PUT",
+and it is the only one that is safe here without moving the images first,
+because it cannot delete the archive under any argument. It is the fallback if
+FTPS proves unreliable:
+
+    curl --fail-with-body -u "$KUDU_USER:$KUDU_PASSWORD" \
+      -X PUT -H 'Content-Type: application/zip' --data-binary @site.zip \
+      "https://davidconger.scm.azurewebsites.net/api/zip/site/wwwroot/"
+
+What it gives up is the incremental sync: it ships the whole tree every time and
+can never remove a file. For a site whose central constraint is "never delete
+anything", that is a smaller loss than it sounds.
+
+### If the deploy dies with ECONNRESET
+
+The first live run failed like this, immediately after printing a correct
+file-by-file plan:
+
+    Making changes to 14559 files/folders to sync server state
+    creating folder ".well-known/"
+    Error: Client is closed because read ECONNRESET (data socket)
+
+Nothing was wrong with the site or the credentials. On a first publish the
+sync-state file does not exist yet; the action tries to `RETR` it anyway, the
+server rejects the missing file, and the data socket is reset. The library
+catches that as "this must be your first publish" without noticing that
+`basic-ftp` has already marked the whole client dead, so the next command — the
+first `MKD` — throws. A dry run never notices, because it issues no further
+commands after the diff. This is
+[issue #153](https://github.com/SamKirkland/FTP-Deploy-Action/issues/153) and
+[#489](https://github.com/SamKirkland/FTP-Deploy-Action/issues/489).
+
+The workflow now seeds an empty state file over FTPS before handing over to the
+action, but only when that file is genuinely absent, so a real one is never
+clobbered. An empty state means "the server holds nothing", which is what the
+action already believed — it just reaches that conclusion without a failing
+request. That step is also the diagnostic: it uses the same passive FTPS path,
+so if it cannot write the file, the problem is the network or Azure and not the
+library, and it says so and stops.
+
 ## The change that actually helps: split storage from markup
 
 Move the photographs to **Azure Blob Storage** and serve them through **Azure

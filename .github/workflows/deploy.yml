@@ -149,6 +149,70 @@ jobs:
           echo "dir=$path" >> "$GITHUB_OUTPUT"
           echo "resolved endpoint, deploying to $path"
 
+      # basic-ftp closes its client whenever a socket errors, and on a first
+      # publish the sync-state file does not exist yet. The action RETRs it, the
+      # server rejects the missing file, the data socket is reset, and
+      # @samkirkland/ftp-deploy catches that as "this must be your first publish"
+      # without noticing the client is now dead. The very next command - the first
+      # MKD - then fails with
+      #
+      #     Client is closed because read ECONNRESET (data socket)
+      #
+      # which is exactly what the first live run did, at ".well-known/", straight
+      # after printing a correct 14,559-file plan. A dry run never notices because
+      # it issues no further commands after the diff.
+      #
+      # Seeding an empty state file removes the failing RETR. Empty means "the
+      # server holds nothing", so the action still uploads everything and still
+      # deletes nothing: the same plan the dry run printed, just arrived at
+      # without tripping over a missing file. It only runs when the file is truly
+      # absent, so a real state file from an earlier deploy is never clobbered.
+      #
+      # This also answers the question the failure raised, which is whether FTPS
+      # data transfers work from a runner at all. curl uses the same passive FTPS
+      # path; if it cannot write this file, the problem is the network or Azure
+      # rather than the library, and no amount of retrying the action will help.
+      - name: Seed the sync state file if this scope has never run
+        if: ${{ !inputs.dry-run }}
+        env:
+          HOST: ${{ steps.ftp.outputs.host }}
+          DIR: ${{ steps.ftp.outputs.dir }}
+          FTP_USER: ${{ secrets.AZURE_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.AZURE_FTP_PASSWORD }}
+          STATE: .ftp-deploy-${{ inputs.scope }}.json
+        run: |
+          set -uo pipefail
+          url="ftp://${HOST}${DIR}${STATE}"
+
+          # The action itself defaults to security: loose, so accepting an
+          # unverified certificate here keeps one connection policy across the
+          # whole job. Strict is tried first regardless, because if the
+          # certificate does verify there is no reason to accept less.
+          if curl -fsS --ssl-reqd --user "$FTP_USER:$FTP_PASS" -o /dev/null "$url"; then
+            echo "$STATE is already on the server; leaving it exactly as it is."
+            exit 0
+          fi
+          if curl -fsS --ssl-reqd -k --user "$FTP_USER:$FTP_PASS" -o /dev/null "$url"; then
+            echo "$STATE is already on the server; leaving it exactly as it is."
+            echo "(the certificate did not verify strictly, which matches the action's own default)"
+            exit 0
+          fi
+
+          echo "$STATE is not on the server, so this scope has never completed a deploy. Seeding it."
+          printf '%s' '{"description":"Seeded by the deploy workflow so that a first publish does not have to RETR a file that is not there. Safe to delete - the next deploy would simply resync.","version":"1.0.0","generatedTime":0,"data":[]}' > "$RUNNER_TEMP/seed.json"
+
+          note=""
+          if ! curl -fsS --ssl-reqd --user "$FTP_USER:$FTP_PASS" -T "$RUNNER_TEMP/seed.json" "$url"; then
+            echo "The strict upload failed; retrying the way the action itself connects."
+            note=" (without strict certificate checking)"
+            if ! curl -fsS --ssl-reqd -k --user "$FTP_USER:$FTP_PASS" -T "$RUNNER_TEMP/seed.json" "$url"; then
+              echo "::error::Could not write to the server over FTPS. The control connection authenticates but no data transfer completes, which points at the network path or at Azure rather than at the deploy library. See the Kudu fallback in DEPLOY.md."
+              exit 1
+            fi
+          fi
+          rm -f "$RUNNER_TEMP/seed.json"
+          echo "Seeded $STATE$note. FTPS data transfers work from this runner."
+
       - name: Deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
