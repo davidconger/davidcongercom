@@ -127,10 +127,33 @@ jobs:
             echo 'EXCLUDE_EOF'
           } >> "$GITHUB_OUTPUT"
 
+      # The publish profile states the FTP endpoint as a full URL --
+      # ftps://waws-prod-xxx.ftp.azurewebsites.windows.net/site/wwwroot/ -- and
+      # that is what anyone will paste into the secret, because it is what the
+      # portal hands you. The action wants a bare hostname in `server` and the
+      # remote path in `server-dir`, and answers a URL with ENOTFOUND. Splitting
+      # it here is better than requiring the secret to be stored in a shape that
+      # nothing else produces. A bare hostname is passed through unchanged.
+      - name: Resolve the FTP endpoint
+        id: ftp
+        env:
+          RAW: ${{ secrets.AZURE_FTP_SERVER }}
+        run: |
+          rest="${RAW#*://}"
+          host="${rest%%/*}"
+          if [ "$rest" = "$host" ]; then path=""; else path="/${rest#*/}"; fi
+          case "$path" in ""|"/") path="/site/wwwroot/" ;; esac
+          case "$path" in */) ;; *) path="$path/" ;; esac
+          echo "::add-mask::$host"
+          echo "host=$host" >> "$GITHUB_OUTPUT"
+          echo "dir=$path" >> "$GITHUB_OUTPUT"
+          echo "resolved endpoint, deploying to $path"
+
       - name: Deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
-          server: ${{ secrets.AZURE_FTP_SERVER }}
+          server: ${{ steps.ftp.outputs.host }}
+          server-dir: ${{ steps.ftp.outputs.dir }}
           username: ${{ secrets.AZURE_FTP_USERNAME }}
           password: ${{ secrets.AZURE_FTP_PASSWORD }}
           protocol: ftps

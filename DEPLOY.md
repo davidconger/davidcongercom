@@ -95,6 +95,11 @@ publish profile) and copy the FTP entry's values into repository secrets:
 | `AZURE_FTP_USERNAME` | `davidconger\$davidconger` |
 | `AZURE_FTP_PASSWORD` | from the publish profile |
 
+Paste the FTP endpoint exactly as the publish profile gives it. The action
+itself wants a bare hostname and a separate remote path, so the workflow splits
+the URL before handing it over — a bare hostname works too, and is assumed to
+mean `/site/wwwroot/`.
+
 ### The first deploy, in five runs
 
 `web.config` is the one file that can take the entire site down. Its rewrite
