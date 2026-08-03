@@ -84,7 +84,7 @@ publish profile) and copy the FTP entry's values into repository secrets:
 | `AZURE_FTP_USERNAME` | `davidconger\$davidconger` |
 | `AZURE_FTP_PASSWORD` | from the publish profile |
 
-### The first deploy, in four runs
+### The first deploy, in five runs
 
 `web.config` is the one file that can take the entire site down. Its rewrite
 section carries a 747-entry map redirecting every pre-2012 gallery address to its
@@ -99,6 +99,12 @@ else moves.
 | 2 | `config-only` | **off** | IIS accepted the rewrite map. `web.config` and `404.htm` are the only files that moved. |
 | 3 | `full` | on | The list of the ~11,900 files about to change looks right, and nothing is queued for deletion. |
 | 4 | `full` | **off** | The site is live and modern. |
+| 5 | `images` | on, then **off** | The 3,012 tracked thumbnails and page images reach the server. |
+
+Run 5 is last because it is the only one that is not urgent: until it runs, the
+252 newly generated `/you/` thumbnails are referenced by pages that are already
+live, so the archive grid will show gaps. Run it with `dry-run` on first and
+confirm the log lists only files under `you/`, `catalog/` and `images/`.
 
 Run 2 is the one that matters. It uploads two small files, waits, then runs:
 
@@ -116,7 +122,7 @@ its default behaviour instantly and the old site keeps serving. Nothing else has
 changed at that point, so there is nothing else to undo.
 
 Run 4 runs the full ten-check smoke test, which additionally confirms the
-stylesheet, `robots.txt` and the 10,791-URL sitemap all shipped, that a
+stylesheet, `robots.txt` and the 2,734-URL sitemap all shipped, that a
 directory URL resolves, that a long-published URL like
 `/galleries/2019/12/deadmau5/index.htm` is untouched, and that `/you/` is up.
 
@@ -126,12 +132,18 @@ You can run that suite by hand at any time:
 
 ### What happens to the old FrontPage files on the server
 
-The action tracks what it has deployed in a `.ftp-deploy-sync-state.json` file
-it keeps on the server. On the first run there is no such file, so it has no
-record of the ~46,400 FrontPage files sitting in `wwwroot` and will not touch
+The action tracks what it has deployed in a sync-state file it keeps on the
+server, one per scope: `.ftp-deploy-config-only.json`, `.ftp-deploy-full.json`
+and `.ftp-deploy-images.json`. On the first run there is no such file, so it has
+no record of the ~46,400 FrontPage files sitting in `wwwroot` and will not touch
 them — it uploads the new tree alongside them. **Read the run 3 dry-run log
 before running 4 to confirm this**; the log lists every delete it intends to
 make, and on a first deploy that list should be empty.
+
+The state files are deliberately separate. The action decides what to delete by
+comparing the server's manifest against what is on disk, so a shared file would
+mean an `images` run reading a manifest that lists the whole site, finding only
+thumbnails locally, and concluding that every page had been deleted.
 
 Clearing that cruft off the server is a separate, optional job. It is dead
 weight against the 10 GB quota but it is not harmful, and it is safer done
@@ -141,10 +153,22 @@ deliberately than as a side effect of a deploy. Never use the action's
 
 ### New photographs
 
-Images are not in git and are not deployed by the workflow. Publishing an event
-is still: generate it with `tools/new-gallery.js`, upload that one folder over
-FTP, then commit and deploy the markup. The workflow will pick up the new pages;
-the JPEGs go up once, by hand.
+The split is by what the image is for, not by its extension.
+
+**Site furniture is in git and ships with the `images` scope**: the 240x160 grid
+thumbnails under `you/**/thumbnail.jpg` and `catalog/`, and the page chrome under
+`images/`. 3,012 files, 79 MB. These change whenever a tool regenerates them, so
+they need a deploy path.
+
+**Photographs are not in git and are never deployed.** 5.3 GB of originals live
+on the server and in the local OneDrive copy. Publishing an event is still:
+generate it with `tools/new-gallery.js`, upload that one folder over FTP, then
+commit and deploy the markup. The workflow picks up the new pages, and the
+`images` scope picks up the thumbnail; the full-size JPEGs go up once, by hand.
+
+That exclusion is load-bearing. `**/*.jpg` in the full scope's exclude list is
+what guarantees a deploy can never delete the archive, which is why the `images`
+scope stages its payload separately with `git ls-files` rather than relaxing it.
 
 ## Why not zip deploy
 

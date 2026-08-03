@@ -83,7 +83,10 @@ const CHECKS = [
     '/sitemap.xml', r => {
       if (r.status !== 200) return 'status ' + r.status;
       const n = (r.body.match(/<loc>/g) || []).length;
-      return n >= 8000 ? null : 'only ' + n + ' URLs';
+      // 2,734 URLs: the gallery and event pages worth ranking, not the 8,045
+      // single-photo and pagination pages that still answer but are no longer
+      // advertised. The floor catches a truncated upload, not a slim sitemap.
+      return n >= 2400 ? null : 'only ' + n + ' URLs';
     }],
 
   ['dirindex', 'a directory URL resolves to its index.htm',
