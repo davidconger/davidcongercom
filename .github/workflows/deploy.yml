@@ -55,8 +55,11 @@ jobs:
       # up three quarters of it. Those URLs still answer; they are simply not
       # advertised. If this number falls below the floor, something has gone
       # wrong with the walk rather than with the site.
+      # xmllint used to do this, but ubuntu-latest no longer ships
+      # libxml2-utils. Python is preinstalled and its parser is just as strict
+      # about well-formedness, so this needs no apt-get.
       - name: Validate XML
-        run: xmllint --noout web.config sitemap.xml
+        run: python3 -c "import sys,xml.dom.minidom as m; [m.parse(f) for f in sys.argv[1:]]; print('XML OK')" web.config sitemap.xml
 
       - name: Validate sitemap coverage
         run: >
