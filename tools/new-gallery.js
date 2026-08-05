@@ -5,11 +5,14 @@
  * exact URL shape the site has always used, so nothing about the FTP workflow
  * or any existing link changes:
  *
- *   you/<year>/<slug>/index.htm
+ *   you/<year>/<slug>/index.htm                  the whole gallery, one page
  *   you/<year>/<slug>/thumbnail.jpg              240x160, for the /you/ listing
- *   you/<year>/<slug>/gallery/<slug>-NN.htm      one page per photo
  *   you/<year>/<slug>/gallery/<slug>-NN.jpg      1280px display copy
  *   you/<year>/<slug>/gallery/<slug>-NN_sm.jpg   240x160 thumbnail
+ *
+ * There is no page per photograph. Photographs open in a lightbox over the
+ * grid, so the 8,036 pages that used to exist for that job were retired and
+ * redirected; generating new ones would put them straight back.
  *
  * Usage:
  *
@@ -159,14 +162,6 @@ const intro = courtesy
   : 'If you attended this event you should find a copy of your photo below and are welcome to save a copy and share it on social media.';
 
 const gridAlt = (n) => (venue ? `${A} at ${V}, photo ${n}` : `${A}, photo ${n}`);
-const photoAlt = (n, total) =>
-  venue ? `${A} at ${V}, photo ${n} of ${total}` : `${A}, photo ${n} of ${total}`;
-const photoTitle = (n, total) =>
-  venue
-    ? `${A} at ${V} - photo ${n} of ${total} | David Conger Photography`
-    : `${A} - photo ${n} of ${total} | David Conger Photography`;
-const photoDescription = (n) =>
-  venue ? `Meet and greet photo ${n} of ${A} at ${V}, ${D}.` : `Photo ${n} of you at ${A}, ${D}.`;
 
 /* ------------------------------------------------------------ source scan */
 
@@ -199,10 +194,10 @@ const photos = sources.map((src, i) => {
   return {
     src: path.join(sourceDir, src),
     num: n,
+    id: `p-${pad(n)}`,
     base: `${slug}-${pad(n)}`,
     jpg: `${slug}-${pad(n)}.jpg`,
     sm: `${slug}-${pad(n)}_sm.jpg`,
-    htm: `${slug}-${pad(n)}.htm`,
   };
 });
 
@@ -336,7 +331,17 @@ function thumbSize(file) {
 const items = photos
   .map((p) => {
     const t = thumbSize(path.join(galleryDir, p.sm));
-    return `\t\t<li><a href="gallery/${p.htm}"><img src="gallery/${p.sm}" width="${t.width}" height="${t.height}" loading="lazy" decoding="async" alt="${gridAlt(p.num)}"/></a></li>`;
+    const full = dryRun ? { width: FULL_MAX, height: 854 } : jpegSize(path.join(galleryDir, p.jpg));
+    /* The thumbnail links straight to the photograph, with download, so the
+       gallery works with no JavaScript at all - the link saves the picture.
+       js/lightbox.js upgrades that into an overlay. The id is what a deep link
+       and the redirects from the retired per-photo URLs aim at, and the
+       download name is the event's rather than the file's, which is not always
+       the same thing. */
+    return `\t\t<li id="${p.id}"><a href="gallery/${p.jpg}" download="${p.jpg}"`
+      + ` data-full-width="${full.width}" data-full-height="${full.height}">`
+      + `<img src="gallery/${p.sm}" width="${t.width}" height="${t.height}"`
+      + ` loading="lazy" decoding="async" alt="${gridAlt(p.num)}"></a></li>`;
   })
   .join('\n');
 
@@ -352,39 +357,10 @@ write(
   })
 );
 
-// One page per photo, with previous/next so a visitor can page through the set
-// instead of returning to the index between every shot.
-const photoTpl = tpl('you-photo.htm');
-photos.forEach((p, i) => {
-  const prev = i > 0 ? photos[i - 1] : null;
-  const next = i < photos.length - 1 ? photos[i + 1] : null;
-  const nav = [
-    prev ? `<a href="${prev.htm}" rel="prev">&laquo; Previous</a>` : '<span class="navDisabled">&laquo; Previous</span>',
-    '<a href="../index.htm">Back to Gallery</a>',
-    next ? `<a href="${next.htm}" rel="next">Next &raquo;</a>` : '<span class="navDisabled">Next &raquo;</span>',
-  ].join('\n\t\t');
-
-  const dims = dryRun
-    ? { width: FULL_MAX, height: 854 }
-    : jpegSize(path.join(galleryDir, p.jpg));
-
-  write(
-    path.join(galleryDir, p.htm),
-    render(photoTpl, {
-      ...common,
-      ROOT: '../../../../',
-      IMAGEFILE: p.jpg,
-      NUMBER: String(p.num),
-      WIDTH: String(dims.width),
-      HEIGHT: String(dims.height),
-      NAVIGATION: nav,
-      PAGETITLE: photoTitle(p.num, photos.length),
-      DESCRIPTION: photoDescription(p.num),
-      ALT: photoAlt(p.num, photos.length),
-      CANONICAL: `${SITE}/you/${year}/${slug}/gallery/${p.htm}`,
-    })
-  );
-});
+/* There is no page per photograph any more. Every one of them used to have one,
+   which is what made the galleries long enough to need paginating; the lightbox
+   replaced both, and the 8,036 pages that already existed were retired and
+   redirected. Generating fresh ones here would put them straight back. */
 
 /* ------------------------------------------------- /you/ listing insertion */
 
