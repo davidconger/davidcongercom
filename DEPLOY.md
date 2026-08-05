@@ -218,6 +218,27 @@ deliberately than as a side effect of a deploy. Never use the action's
 `dangerous-clean-slate` option to do it: that deletes everything on the server
 *including excluded paths*, which here means all 5.3 GB of photographs.
 
+### The retired `/you/` pages will still be on the server
+
+8,036 per-photo and pagination pages under `/you/` were deleted from the source
+tree when the lightbox replaced them. Whether a deploy also deletes them from
+the server depends on that sync-state file, and it is not worth relying on
+either way, because it does not matter: **IIS runs its rewrite rules before it
+looks for a file**, so `web.config` redirects those URLs whether or not the old
+page is still sitting there.
+
+That ordering is the whole reason the redirects can be trusted. It is also why
+`tools/serve.js` applies the same rules before touching the file system — a
+preview that served the old page instead of the redirect would be testing
+something the live site does not do.
+
+If they do linger, they are ~77 MB of files nothing can reach. Worth sweeping up
+eventually, no hurry.
+
+`tools/rewrite-sim.js` replays all 8,036 retired URLs through the rules as
+written in `web.config` and checks each one lands on a page that exists, and on
+a photograph that is really on it. Run it after any change to the rewrite rules.
+
 ### New photographs
 
 The split is by what the image is for, not by its extension.

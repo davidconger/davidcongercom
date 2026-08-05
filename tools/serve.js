@@ -3,14 +3,34 @@
  *
  * Usage: node tools/serve.js [root] [port]
  * Mirrors IIS behaviour closely enough for checking pages: directory requests
- * fall back to index.htm, then index.html.
+ * fall back to index.htm, then index.html, and the redirect rules in web.config
+ * are applied before the file system is consulted.
+ *
+ * The rules matter locally because thousands of retired URLs now exist only as
+ * redirects. Without them a sixteen-year-old link would 404 in preview and look
+ * broken when it is not.
  */
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { readRules, apply } = require('./rewrite-rules');
 
 const root = path.resolve(process.argv[2] || '.');
 const port = parseInt(process.argv[3] || '8080', 10);
+
+// Read once at startup, and say so, because rules that silently fail to load
+// would make the preview quietly wrong.
+let rules = [];
+try {
+  const config = path.join(root, 'web.config');
+  if (fs.existsSync(config)) {
+    rules = readRules(config);
+    const active = rules.filter((r) => !r.hasConditions).length;
+    console.log(`web.config: ${active} of ${rules.length} rewrite rules applied (the rest need IIS rewrite maps)`);
+  }
+} catch (e) {
+  console.log('web.config rules not loaded: ' + e.message);
+}
 
 const TYPES = {
   '.htm': 'text/html; charset=utf-8',
@@ -40,6 +60,21 @@ http
     if (!file.startsWith(root)) {
       res.writeHead(403).end('Forbidden');
       return;
+    }
+
+    /* IIS runs its rewrite rules before it looks for a file, so a redirect
+       wins even where a file of that name still exists. Doing the same here
+       keeps the preview honest. */
+    const rule = apply(rules, rel);
+    if (rule) {
+      if (rule.type === 'Redirect') {
+        res.writeHead(rule.status, { Location: rule.target }).end();
+        return;
+      }
+      if (rule.type === 'CustomResponse') {
+        res.writeHead(rule.status).end('Not found: ' + rel);
+        return;
+      }
     }
 
     try {
