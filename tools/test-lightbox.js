@@ -144,8 +144,10 @@ async function main() {
       imgAlt: img ? img.getAttribute('alt') : null,
       linkHref: link ? link.getAttribute('href') : null,
       linkDownload: link ? link.hasAttribute('download') : false,
+      linkDownloadName: link ? link.getAttribute('download') : null,
       saveHref: save ? save.getAttribute('href') : null,
       saveDownload: save ? save.hasAttribute('download') : false,
+      saveDownloadName: save ? save.getAttribute('download') : null,
       saveHidden: save ? save.hidden : null,
       photoHidden: link ? link.hidden : null,
       noteHidden: note ? note.hidden : null,
@@ -168,7 +170,12 @@ async function main() {
 
   const firstAnchor = () => evaluate(`(function () {
     var a = document.querySelector('#youimages li a');
-    return { href: a.getAttribute('href'), download: a.hasAttribute('download'), li: a.parentNode.id };
+    return {
+      href: a.getAttribute('href'),
+      download: a.hasAttribute('download'),
+      downloadName: a.getAttribute('download'),
+      li: a.parentNode.id
+    };
   })()`);
 
   console.log('\nGallery lightbox — ' + NEWER + '\n');
@@ -178,6 +185,14 @@ async function main() {
   check('thumbnail links straight to the JPEG', /\.jpe?g$/i.test(anchor.href), anchor.href);
   check('thumbnail carries download, so it works with JS off', anchor.download === true);
   check('thumbnail li has a deep-link id', /^p-\d+$/.test(anchor.li), anchor.li);
+
+  // The photographs on disk are named however the retired generator happened to
+  // name them, which is not always after the event. The download attribute is
+  // what the visitor actually ends up with in their downloads folder, so that
+  // is the name that has to be right.
+  const slug = NEWER.replace(/\/+$/, '').split('/').pop();
+  const expectedName = slug + '-' + anchor.li.slice(2) + '.jpg';
+  check('saved file is named after the event', anchor.downloadName === expectedName, anchor.downloadName);
 
   let s = await state();
   check('no overlay is built until it is needed', s.exists === false);
@@ -192,6 +207,9 @@ async function main() {
   check('photograph carries the thumbnail alt text', !!s.imgAlt, String(s.imgAlt));
   check('clicking the photograph downloads it', s.linkDownload === true && s.linkHref === anchor.href);
   check('download button points at the same photograph', s.saveDownload === true && s.saveHref === anchor.href);
+  check('lightbox keeps the event-based filename',
+    s.linkDownloadName === expectedName && s.saveDownloadName === expectedName,
+    s.linkDownloadName + ' / ' + s.saveDownloadName);
   check('controls sit clear of the photograph', s.controlsOverlapPhoto === false);
   check('page behind is scroll-locked', s.scrollLocked === true);
   check('focus moves into the dialog', /lightboxClose/.test(s.activeClass), s.activeClass);
@@ -278,6 +296,18 @@ async function main() {
   await sleep(400);
   s = await state();
   check('#p-NN deep link opens that photograph', s.open === true && /-04\.jpg$/.test(s.imgSrc || ''), String(s.imgSrc));
+
+  // IIS is not reliable about carrying a fragment through a redirect, so the
+  // rewrite rules send ?p=NN instead. It has to open the same photograph and
+  // then tidy the URL back to the fragment form.
+  await goto(NEWER + '?p=05');
+  await sleep(400);
+  s = await state();
+  check('?p=NN query deep link opens that photograph', s.open === true && /-05\.jpg$/.test(s.imgSrc || ''), String(s.imgSrc));
+  const tidied = await evaluate('location.search + location.hash');
+  check('?p=NN is swapped for the tidy #p-NN', tidied === '#p-05', String(tidied));
+  await evaluate("document.querySelector('.lightboxClose').click()");
+  await sleep(300);
 
   // Same page, hash changed afterwards - an in-page link to a photograph.
   await evaluate("document.querySelector('.lightboxClose').click()");

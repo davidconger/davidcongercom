@@ -99,30 +99,58 @@ for (const file of walk(YOU, [])) {
 	if (!anchorCount) { report.skipped.push(rel(file) + ' (empty grid)'); continue; }
 
 	let bad = false;
+	const slug = path.basename(dir);
 	const newGrid = grid[1].replace(liRe, (m, liAttrs, s1, aAttrs, s2, imgAttrs, selfClose, s3, s4) => {
 		const href = attr(aAttrs, 'href');
 		if (!href) { bad = true; return m; }
-		if (/\.jpe?g$/i.test(href)) { return m; } // already converted
 
-		const photoPage = path.resolve(dir, href);
-		const info = readPhotoPage(photoPage);
-		if (!info) { report.unresolved.push(rel(file) + ' -> ' + href); bad = true; return m; }
+		let target;
+		let info;
+		if (/\.jpe?g$/i.test(href)) {
+			// Already pointing at the photograph from an earlier run.
+			target = href;
+			info = {
+				width: attr(aAttrs, 'data-full-width'),
+				height: attr(aAttrs, 'data-full-height'),
+			};
+		} else {
+			const photoPage = path.resolve(dir, href);
+			const page = readPhotoPage(photoPage);
+			if (!page) { report.unresolved.push(rel(file) + ' -> ' + href); bad = true; return m; }
 
-		const abs = path.resolve(path.dirname(photoPage), info.href);
-		if (!fs.existsSync(abs)) { report.missing.push(rel(file) + ' -> ' + rel(abs)); bad = true; return m; }
+			const abs = path.resolve(path.dirname(photoPage), page.href);
+			if (!fs.existsSync(abs)) { report.missing.push(rel(file) + ' -> ' + rel(abs)); bad = true; return m; }
+			target = path.relative(dir, abs).replace(/\\/g, '/');
+			info = page;
+		}
 
-		const target = path.relative(dir, abs).replace(/\\/g, '/');
-		const num = path.basename(target).match(/-(\d+)\.jpe?g$/i);
+		const base = path.basename(target);
+		const num = base.match(/-(\d+)\.jpe?g$/i);
+		const ext = (base.match(/(\.jpe?g)$/i) || ['.jpg'])[0].toLowerCase();
 
 		let li = '<li';
 		if (num && !/\bid\s*=/i.test(liAttrs)) li += ' id="p-' + num[1] + '"';
 		li += liAttrs + '>';
 
-		let a = '<a href="' + target + '" download';
+		// Name the saved file after the event rather than after whatever the
+		// file happens to be called on disk. Those two drifted apart long ago:
+		// 85 of 324 events use a different stem, and one event's thumbnails are
+		// named after an entirely different artist. Renaming 2.4 GB of
+		// photographs to fix that would mean re-uploading all of them, so the
+		// download attribute carries the correct name instead and nothing on
+		// disk or on the server has to move.
+		const saveAs = num ? slug + '-' + num[1] + ext : base;
+
+		let a = '<a href="' + target + '" download="' + saveAs + '"';
 		if (info.width) a += ' data-full-width="' + info.width + '"';
 		if (info.height) a += ' data-full-height="' + info.height + '"';
-		// Keep any attribute the anchor already carried apart from its href.
-		const kept = aAttrs.replace(/\s*\bhref\s*=\s*"[^"]*"/i, '').trim();
+		// Keep any attribute the anchor already carried apart from the ones
+		// this tool owns.
+		const kept = aAttrs
+			.replace(/\s*\bhref\s*=\s*"[^"]*"/i, '')
+			.replace(/\s*\bdownload(\s*=\s*"[^"]*")?/i, '')
+			.replace(/\s*\bdata-full-(width|height)\s*=\s*"[^"]*"/gi, '')
+			.trim();
 		if (kept) a += ' ' + kept;
 		a += '>';
 

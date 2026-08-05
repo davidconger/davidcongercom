@@ -115,6 +115,12 @@
 		photoLink.href = url;
 		saveLink.href = url;
 
+		// The file on disk is often named after something other than this
+		// event, so the anchor carries the name the visitor should get.
+		var saveAs = anchor.getAttribute('download');
+		if (saveAs) { photoLink.download = saveAs; saveLink.download = saveAs; }
+		else { photoLink.setAttribute('download', ''); saveLink.setAttribute('download', ''); }
+
 		lastFocus = document.activeElement;
 		box.hidden = false;
 		document.documentElement.classList.add('lightboxOpen');
@@ -165,17 +171,41 @@
 		open(anchor);
 	});
 
-	// A retired per-photo URL can be redirected to the gallery with #p-NN and
-	// land on the right photograph.
+	// A retired per-photo URL redirects here and opens the right photograph.
+	//
+	// Two forms are accepted. The fragment #p-NN is the tidy one and is what
+	// in-page links use. The query ?p=NN exists because the redirect is issued
+	// by IIS, which is not reliable about carrying a fragment through a rewrite
+	// rule - a query string always survives. When one arrives it is swapped for
+	// the fragment form so the visitor is left on a clean URL.
+	function openPhoto(id) {
+		if (box && !box.hidden) return false;
+		var li = document.getElementById(id);
+		if (!li || !grid.contains(li)) return false;
+		var anchor = li.querySelector('a[href]');
+		if (!anchor) return false;
+		open(anchor);
+		return true;
+	}
+
 	function openFromHash() {
-		if (box && !box.hidden) return;
 		var hash = window.location.hash;
 		if (!/^#p-\w+$/.test(hash)) return;
-		var li = document.getElementById(hash.slice(1));
-		if (!li || !grid.contains(li)) return;
-		var anchor = li.querySelector('a[href]');
-		if (anchor) open(anchor);
+		openPhoto(hash.slice(1));
 	}
+
+	function openFromQuery() {
+		var m = window.location.search.match(/[?&]p=([\w-]+)/);
+		if (!m) return;
+		var id = /^p-/.test(m[1]) ? m[1] : 'p-' + m[1];
+		var clean = window.location.pathname + '#' + id;
+		if (window.history && window.history.replaceState) {
+			try { window.history.replaceState(null, '', clean); } catch (err) { /* leave the URL alone */ }
+		}
+		openPhoto(id);
+	}
+
 	window.addEventListener('hashchange', openFromHash);
-	openFromHash();
+	if (window.location.search.indexOf('p=') !== -1) openFromQuery();
+	else openFromHash();
 })();
