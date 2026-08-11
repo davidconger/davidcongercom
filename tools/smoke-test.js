@@ -115,6 +115,47 @@ const CHECKS = [
   ['legacyurl', 'a long-published gallery URL is untouched',
     '/galleries/2019/12/deadmau5/index.htm', r => r.status === 200 ? null : 'status ' + r.status],
 
+  // The 8,036 single-photo and pagination pages under /you/ were retired when the
+  // lightbox replaced them, and two rewrite rules now carry their URLs into the
+  // gallery that holds the photograph. The query string is the entire point: a
+  // fragment is the client's business and IIS is not reliable about carrying one
+  // through a redirect, so the rule hands over ?p=NN and lightbox.js turns it back
+  // into #p-NN on arrival. Nothing local can prove that hand-off - tools/rewrite-sim.js
+  // replays the rules and tools/serve.js applies them, but neither is IIS. This
+  // check is the only place it is tested for real, which is why it runs in the
+  // config-only scope, the moment the rules first reach the server.
+  ['you-photo-redirect', 'a retired photo page redirects into its gallery, keeping ?p=',
+    '/you/2013/buddy-guy-at-snoqualmie-casino/page-1/buddy-guy-at-snoqualmie-casino-03.htm', r => {
+      if (r.status === 500) {
+        return 'IIS returned 500 - the rewrite section is probably malformed or URL Rewrite is missing';
+      }
+      const moved = r.chain.find(h => h.status === 301);
+      if (!moved) return 'no permanent redirect was issued (status ' + r.status + ')';
+      const to = new URL(moved.to);
+      if (to.pathname !== '/you/2013/buddy-guy-at-snoqualmie-casino/') {
+        return 'redirected to ' + to.pathname + ', which is not the event gallery';
+      }
+      if (to.searchParams.get('p') !== '03') {
+        return 'redirected to ' + moved.to + ', so the ?p= photo number did not survive IIS'
+          + ' - every deep link into a photograph lands on the gallery instead';
+      }
+      if (r.status !== 200) return 'redirected correctly but the gallery answered ' + r.status;
+      return null;
+    }],
+
+  ['you-gallery-redirect', 'a retired pagination page redirects to the single gallery',
+    '/you/2013/buddy-guy-at-snoqualmie-casino/page-2.htm', r => {
+      if (r.status === 500) return 'IIS returned 500 - the rewrite section is probably malformed';
+      const moved = r.chain.find(h => h.status === 301);
+      if (!moved) return 'no permanent redirect was issued (status ' + r.status + ')';
+      const to = new URL(moved.to);
+      if (to.pathname !== '/you/2013/buddy-guy-at-snoqualmie-casino/') {
+        return 'redirected to ' + to.pathname + ', which is not the event gallery';
+      }
+      if (r.status !== 200) return 'redirected correctly but the gallery answered ' + r.status;
+      return null;
+    }],
+
   ['you', 'the meet and greet section is up',
     '/you/', r => r.status === 200 ? null : 'status ' + r.status],
 

@@ -238,11 +238,11 @@ jobs:
       # would notice a site-wide 500, a redirect map that never loaded, or cache
       # headers that silently did not take effect.
       #
-      # Four of the checks - the two redirect checks, the custom 404 and the cache
-      # lifetime - test behaviour that only web.config produces, and web.config
-      # ships in its own scope, after the content. So rather than assume, ask the
-      # server: X-Content-Type-Options is a header nothing but our web.config
-      # sends. If it is absent the config has not shipped yet and those four
+      # Six of the checks - the two legacy redirect checks, the two /you/ retirement
+      # redirects, the custom 404 and the cache lifetime - test behaviour that only
+      # web.config produces, and web.config ships in its own scope. So rather than
+      # assume, ask the server: X-Content-Type-Options is a header nothing but our
+      # web.config sends. If it is absent the config has not shipped yet and those
       # checks are not applicable; once it is there, every run tests everything.
       - name: Smoke test the live site
         if: ${{ !inputs.dry-run }}
@@ -251,10 +251,10 @@ jobs:
         run: |
           sleep 20
           if [ "${{ inputs.scope }}" = "config-only" ]; then
-            node tools/smoke-test.js "$SITE" --only=home,redirect-issued,notfound,cache,atproto,rotator
+            node tools/smoke-test.js "$SITE" --only=home,redirect-issued,notfound,cache,atproto,rotator,you-photo-redirect,you-gallery-redirect
           elif curl -sS -o /dev/null -D - "$SITE/" | grep -qi '^x-content-type-options:'; then
             node tools/smoke-test.js "$SITE"
           else
             echo "web.config has not been deployed yet, so the checks that depend on it are not applicable."
-            node tools/smoke-test.js "$SITE" --skip=redirect,redirect-issued,notfound,cache,atproto,rotator
+            node tools/smoke-test.js "$SITE" --skip=redirect,redirect-issued,notfound,cache,atproto,rotator,you-photo-redirect,you-gallery-redirect
           fi
