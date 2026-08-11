@@ -48,11 +48,13 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const https = require('https');
 const { execFileSync, spawnSync } = require('child_process');
 
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif']);
 const SITE = process.env.SYNC_SITE || 'https://www.davidconger.com';
+const SCM = process.env.AZURE_SCM_SERVER || 'davidconger.scm.azurewebsites.net';
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
@@ -154,15 +156,16 @@ function ftpUpload(localPath, remoteRel, creds, attempts = 3) {
   // curl retries only what it considers transient - timeouts, an FTP 4xx, a few
   // HTTP 5xx - and Azure's FTP rejects the occasional STOR with 550, which is a
   // permanent code that curl will not retry by design. Measured at 0.9% over
-  // 1,388 uploads and 1.5% over 1,874, scattered across events and hitting
-  // full-size photographs and thumbnails alike, while larger files went up fine
-  // in the same run. That is a server-side hiccup, not anything about the file,
-  // so retrying the whole invocation is the fix; the delay grows so a busy
-  // moment on the server is given time to pass.
+  // 1,388 uploads and 1.5% over 1,874, scattered across events, hitting
+  // full-size photographs and thumbnails alike. Retrying clears most of them.
   //
-  // A 550 that survives all three attempts is telling you something else, and
-  // two files in you/2009 do exactly that. Look for something already occupying
-  // the remote path rather than assuming a slow server.
+  // What retrying never clears is a second, sharper fault. Files whose size
+  // falls within roughly 440 bytes below a 32 KiB multiple are refused every
+  // single time: 2 of 2 in you/2009, 9 of 9 in you/2010 and 26 of 29 in
+  // you/2011, with the rule missing none of them, while files a few hundred
+  // bytes either side of the boundary go up fine. Every one is a valid JPEG,
+  // so this is Azure's FTPS data path rather than the archive. There is no
+  // amount of retrying that helps; uploadFallback() changes transport instead.
   const url = `ftp://${creds.server}/site/wwwroot/${remoteRel}`;
   let lastErr = null;
   for (let attempt = 1; attempt <= attempts; attempt++) {
@@ -191,6 +194,54 @@ function ftpUpload(localPath, remoteRel, creds, attempts = 3) {
     if (attempt < attempts) sleepSync(attempt * 1500);
   }
   return lastErr + ` (after ${attempts} attempts)`;
+}
+
+/* An error FTP will give again no matter how many times it is asked, and which a
+ * change of transport will not help either. */
+function settled(err) {
+  return /curl: \((6|67|26)\)/.test(err);
+}
+
+let viaKudu = 0;
+
+/* The second transport. Kudu's VFS API writes the same wwwroot over HTTPS, so it
+ * shares nothing with the FTPS data path that refuses files sized just under a
+ * 32 KiB boundary. It takes the same password as FTP; the username is the FTP
+ * one with the "davidconger\" prefix dropped. Verified against a file FTP had
+ * refused six times: HTTP 201, and the bytes served back matched the local file
+ * exactly.
+ *
+ * It is a fallback rather than the default because it uploads a whole file per
+ * request with no resume, while FTP handles the other 99% perfectly well. */
+function kuduUpload(localPath, remoteRel, creds) {
+  const user = creds.user.includes('\\') ? creds.user.split('\\').pop() : creds.user;
+  const url = `https://${SCM}/api/vfs/site/wwwroot/${remoteRel}`;
+  const r = spawnSync('curl', [
+    '-sS', '--connect-timeout', '30', '--retry', '2', '--retry-delay', '2',
+    '-u', `${user}:${creds.pass}`,
+    '-T', localPath,
+    '-H', 'If-Match: *',
+    '-o', os.devNull,
+    '-w', '%{http_code}',
+    url
+  ], { encoding: 'utf8' });
+  if (r.status !== 0) {
+    return [...new Set((r.stderr || `curl exit ${r.status}`).trim().split('\n')
+      .map(s => s.trim()).filter(Boolean))].join('; ');
+  }
+  const code = (r.stdout || '').trim();
+  return /^20[0-4]$/.test(code) ? null : `Kudu answered HTTP ${code}`;
+}
+
+/* FTP first, and Kudu only for what FTP will not take. */
+function upload(localPath, remoteRel, creds) {
+  const ftpErr = ftpUpload(localPath, remoteRel, creds);
+  if (!ftpErr) return null;
+  if (settled(ftpErr)) return ftpErr;
+
+  const kuduErr = kuduUpload(localPath, remoteRel, creds);
+  if (!kuduErr) { viaKudu++; return null; }
+  return `${ftpErr}  |  over HTTPS instead: ${kuduErr}`;
 }
 
 (async () => {
@@ -248,7 +299,7 @@ function ftpUpload(localPath, remoteRel, creds, attempts = 3) {
   const started = Date.now();
   for (let i = 0; i < missing.length; i++) {
     const r = rel(missing[i]);
-    const err = ftpUpload(missing[i], r, creds);
+    const err = upload(missing[i], r, creds);
     if (err) { failed.push([r, err]); } else { ok++; }
     if ((i + 1) % 25 === 0 || i === missing.length - 1) {
       const pct = (((i + 1) / missing.length) * 100).toFixed(0);
@@ -258,8 +309,12 @@ function ftpUpload(localPath, remoteRel, creds, attempts = 3) {
   }
   console.log('');
 
+  if (retried || viaKudu) console.log('');
   if (retried) {
-    console.log(`\n${retried} upload(s) failed once and succeeded on a retry.`);
+    console.log(`${retried} upload(s) failed once and succeeded on a retry.`);
+  }
+  if (viaKudu) {
+    console.log(`${viaKudu} upload(s) FTP refused outright went up over HTTPS instead.`);
   }
 
   if (failed.length) {

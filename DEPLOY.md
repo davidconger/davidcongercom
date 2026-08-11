@@ -305,21 +305,36 @@ Properties worth knowing:
 - **Re-running is free and safe.** Anything already up costs one `HEAD` and is
   skipped, so an interrupted run is resumed by repeating the command.
 - **Failed uploads are retried up to three times.** Azure's FTP rejects the
-  occasional `STOR` with a 550: measured at 0.9% over 1,388 uploads and 1.5% over
-  1,874, scattered across events and hitting full-size photographs and
-  thumbnails alike, with files *larger* than any failure going up fine in the
-  same run. It is a server-side hiccup rather than anything about the file. curl
-  is already given `--retry`, but that only covers what curl deems transient
-  (timeouts, FTP 4xx, some HTTP 5xx); 550 is a permanent code to curl and was
-  never retried, which is why this went unnoticed for so long. Errors that will
-  read the same on the third attempt as the first — an unresolvable host, a
-  rejected login, an unreadable local file — still fail immediately, so a
-  mistyped password does not cost three times the wait on every file.
-- **A 550 that survives the retries is a different problem.** Two files in
-  `you/2009` failed identically across two runs and six attempts. A transient
-  fault does not repeat like that; check whether something already occupies the
-  remote path, by listing the directory over FTP and by uploading the same file
-  beside it under another name.
+  occasional `STOR` with a 550, measured at roughly 1% and scattered across
+  events. curl is already given `--retry`, but that only covers what curl deems
+  transient (timeouts, FTP 4xx, some HTTP 5xx); 550 is a permanent code to curl
+  and was never retried, which is why this went unnoticed for so long. Errors
+  that will read the same on the third attempt as the first — an unresolvable
+  host, a rejected login, an unreadable local file — still fail immediately, so
+  a mistyped password does not cost three times the wait on every file.
+- **What the retry exposed is a real Azure bug.** Retrying separated the ~1%
+  hiccup from something deterministic: `you/2010` went 13 failures → 4 recovered
+  and 9 permanent, `you/2011` 29 → 3 and 26. Sizing the permanent set found the
+  pattern — **every one sits within about 440 bytes below a 32,768-byte
+  multiple**, one exactly on 98,304. Azure's FTPS refuses those with 550 every
+  time, apparently a boundary condition in its buffering. Predicting failures
+  from size alone caught 2/2 in `you/2009` and 9/9 in `you/2010` with no misses.
+  The files are valid JPEGs, and files a few hundred bytes either side go up
+  fine.
+- **So there is a second transport.** Kudu's VFS API writes the same `wwwroot`
+  over HTTPS and shares nothing with the FTPS data path, so it takes the files
+  FTP will not:
+
+  ```
+  PUT https://davidconger.scm.azurewebsites.net/api/vfs/site/wwwroot/<path>
+  ```
+
+  Same password; the username is the FTP one **without** the `davidconger\`
+  prefix. `If-Match: *` allows overwrite. `sync-photos.js` falls back to it
+  automatically for anything FTP still refuses after its retries, and says so in
+  the summary. It is the fallback rather than the default because it sends a
+  whole file per request with no resume, while FTP handles the other 99%
+  perfectly well. Override the host with `AZURE_SCM_SERVER` if the app moves.
 - **It skips anything git tracks**, because those are the `images` scope's job
   and two publishers on one file is how files get clobbered.
 - **The path argument is required**, so a mistyped invocation cannot start
@@ -332,15 +347,19 @@ Publishing an event is therefore: generate it with `tools/new-gallery.js`, run
 #### Known backlog: what the server has never held
 
 Converting `you_old/` into `/you/2009/`, `/you/2010/` and `/you/2011/` created 24
-events at addresses the server has never had photographs for. The pages are
-live; every image on them 404s. Measured with `--dry-run`:
+events at addresses the server has never had photographs for. The pages were
+live; every image on them 404'd. Those four trees have now been uploaded:
 
-| Scope | Missing | Size |
-|---|---:|---:|
-| `you/2009` | 404 | 27.4 MB |
-| `you/2010` | 1,388 | 95.1 MB |
-| `you/2011` | 1,874 | 165.9 MB |
-| **total** | **3,666** | **288.4 MB** |
+| Scope | Was missing | Still missing | |
+|---|---:|---:|---|
+| `you/2018` | 36 | 0 | done |
+| `you/2009` | 404 | 1 | 32 KiB boundary |
+| `you/2010` | 1,388 | 9 | 32 KiB boundary |
+| `you/2011` | 1,874 | 26 | 32 KiB boundary |
+
+The remainder are the files Azure's FTPS refuses deterministically; re-running
+each scope now sends them over Kudu instead. Re-run with `--dry-run` afterwards
+to confirm each tree reports 0 missing.
 
 That turned out not to be the whole of it. Eleven of the 193 frames in the
 homepage rotator were 404ing, and chasing why found the same fault in
