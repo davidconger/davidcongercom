@@ -153,12 +153,16 @@ function ftpUpload(localPath, remoteRel, creds, attempts = 3) {
   // curl is given --retry, but that does not cover what actually goes wrong here.
   // curl retries only what it considers transient - timeouts, an FTP 4xx, a few
   // HTTP 5xx - and Azure's FTP rejects the occasional STOR with 550, which is a
-  // permanent code that curl will not retry by design. Measured over 1,388
-  // uploads the rate was 0.9%, every one of them a full-size photograph and none
-  // a thumbnail, and files larger than the largest failure went up fine. That is
-  // a server-side hiccup that scales with how long the transfer is open, not
-  // anything about the file. Retrying the whole invocation is the fix; the delay
-  // grows so a busy moment on the server is given time to pass.
+  // permanent code that curl will not retry by design. Measured at 0.9% over
+  // 1,388 uploads and 1.5% over 1,874, scattered across events and hitting
+  // full-size photographs and thumbnails alike, while larger files went up fine
+  // in the same run. That is a server-side hiccup, not anything about the file,
+  // so retrying the whole invocation is the fix; the delay grows so a busy
+  // moment on the server is given time to pass.
+  //
+  // A 550 that survives all three attempts is telling you something else, and
+  // two files in you/2009 do exactly that. Look for something already occupying
+  // the remote path rather than assuming a slow server.
   const url = `ftp://${creds.server}/site/wwwroot/${remoteRel}`;
   let lastErr = null;
   for (let attempt = 1; attempt <= attempts; attempt++) {
