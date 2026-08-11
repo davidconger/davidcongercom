@@ -304,6 +304,17 @@ Properties worth knowing:
   the same guarantee the workflow gets from excluding `*.jpg`.
 - **Re-running is free and safe.** Anything already up costs one `HEAD` and is
   skipped, so an interrupted run is resumed by repeating the command.
+- **Failed uploads are retried up to three times.** Azure's FTP rejects the
+  occasional `STOR` with a 550 — measured at 0.9% over 1,388 uploads, every one
+  of them a full-size photograph and none a thumbnail, with files *larger* than
+  the largest failure going up fine. It is a server-side hiccup that scales with
+  how long the transfer stays open, not anything about the file. curl is already
+  given `--retry`, but that only covers what curl deems transient (timeouts, FTP
+  4xx, some HTTP 5xx); 550 is a permanent code to curl and was never retried.
+  Errors that will read the same on the third attempt as the first — an
+  unresolvable host, a rejected login, an unreadable local file — still fail
+  immediately, so a mistyped password does not cost three times the wait on
+  every file.
 - **It skips anything git tracks**, because those are the `images` scope's job
   and two publishers on one file is how files get clobbered.
 - **The path argument is required**, so a mistyped invocation cannot start

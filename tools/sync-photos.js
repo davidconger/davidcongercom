@@ -136,19 +136,57 @@ async function mapLimit(items, limit, fn) {
 }
 
 // ------------------------------------------------------------------- uploading
-function ftpUpload(localPath, remoteRel, creds) {
+
+/* No npm dependencies here, so the wait between attempts is done the only way a
+ * synchronous loop can do it. */
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+let retried = 0;
+
+function ftpUpload(localPath, remoteRel, creds, attempts = 3) {
   // curl speaks FTPS and creates missing directories, which keeps this free of
   // any npm dependency. --ftp-pasv matters behind NAT; -sS keeps the output to
   // errors only so the progress line below stays readable.
+  //
+  // curl is given --retry, but that does not cover what actually goes wrong here.
+  // curl retries only what it considers transient - timeouts, an FTP 4xx, a few
+  // HTTP 5xx - and Azure's FTP rejects the occasional STOR with 550, which is a
+  // permanent code that curl will not retry by design. Measured over 1,388
+  // uploads the rate was 0.9%, every one of them a full-size photograph and none
+  // a thumbnail, and files larger than the largest failure went up fine. That is
+  // a server-side hiccup that scales with how long the transfer is open, not
+  // anything about the file. Retrying the whole invocation is the fix; the delay
+  // grows so a busy moment on the server is given time to pass.
   const url = `ftp://${creds.server}/site/wwwroot/${remoteRel}`;
-  const r = spawnSync('curl', [
-    '--ssl-reqd', '--ftp-pasv', '--ftp-create-dirs',
-    '--retry', '3', '--retry-delay', '2', '--connect-timeout', '30',
-    '-sS', '-T', localPath,
-    '-u', `${creds.user}:${creds.pass}`,
-    url
-  ], { encoding: 'utf8' });
-  return r.status === 0 ? null : (r.stderr || `curl exit ${r.status}`).trim();
+  let lastErr = null;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const r = spawnSync('curl', [
+      '--ssl-reqd', '--ftp-pasv', '--ftp-create-dirs',
+      '--retry', '3', '--retry-delay', '2', '--connect-timeout', '30',
+      '-sS', '-T', localPath,
+      '-u', `${creds.user}:${creds.pass}`,
+      url
+    ], { encoding: 'utf8' });
+    if (r.status === 0) {
+      if (attempt > 1) retried++;
+      return null;
+    }
+    // curl repeats its message once per internal retry, so the same sentence can
+    // arrive four times over. Say it once.
+    lastErr = [...new Set((r.stderr || `curl exit ${r.status}`).trim().split('\n')
+      .map(s => s.trim()).filter(Boolean))].join('; ');
+
+    // Some failures are settled on the first answer and will be identical on the
+    // third: an unresolvable host, a rejected login, a local file that cannot be
+    // read. Retrying those turns one wrong credential into three times the wait
+    // on every one of several thousand files.
+    if (/curl: \((6|67|26)\)/.test(lastErr)) return lastErr;
+
+    if (attempt < attempts) sleepSync(attempt * 1500);
+  }
+  return lastErr + ` (after ${attempts} attempts)`;
 }
 
 (async () => {
@@ -215,6 +253,10 @@ function ftpUpload(localPath, remoteRel, creds) {
     }
   }
   console.log('');
+
+  if (retried) {
+    console.log(`\n${retried} upload(s) failed once and succeeded on a retry.`);
+  }
 
   if (failed.length) {
     console.log(`\n${failed.length} failed:`);
