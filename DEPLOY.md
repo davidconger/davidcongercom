@@ -274,12 +274,29 @@ server is missing by asking the live site — every photograph has a public URL,
 so a `HEAD` request is an exact answer to "is this already up?". No FTP listing
 of 80,000 files, no local state file to drift, nothing to seed on a first run.
 
-    $env:AZURE_FTP_SERVER   = "waws-prod-ch1-011.ftp.azurewebsites.windows.net"
-    $env:AZURE_FTP_USERNAME = "davidconger\$davidconger"
-    $env:AZURE_FTP_PASSWORD = "..."
+Run it from the repository root, because the path argument is resolved against
+the working directory. The three values come from the App Service publish
+profile (Portal → davidconger → Overview → Download publish profile), from the
+entry with `publishMethod="FTP"`: `publishUrl`, `userName`, `userPWD`. The same
+values are in GitHub as repository secrets, but GitHub will not show a secret
+again once it is saved, so the publish profile is the place to read them.
+
+**Single-quote the username and password in PowerShell.** The username contains
+a `$`, and inside double quotes PowerShell expands it as a variable — so
+`"davidconger\$davidconger"` silently becomes `davidconger\` and every upload
+fails to authenticate for a reason nothing reports. Backslash is not an escape
+character in PowerShell; single quotes are the fix. The same applies to any
+password containing `$`.
+
+    $env:AZURE_FTP_SERVER   = 'waws-prod-ch1-011.ftp.azurewebsites.windows.net'
+    $env:AZURE_FTP_USERNAME = 'davidconger\$davidconger'
+    $env:AZURE_FTP_PASSWORD = '...'
 
     node tools/sync-photos.js you/2026/newevent --dry-run
     node tools/sync-photos.js you/2026/newevent
+
+The variables live only in that PowerShell window and are gone when it closes,
+which is the point — nothing is written to disk and nothing can reach git.
 
 Properties worth knowing:
 
