@@ -26,11 +26,27 @@ web.config
 404.htm
 
 # Photographs. ~5.3 GB of originals live only on the server and are uploaded by
-# hand. Excluding them is what guarantees a deploy can never delete the archive.
-# The small generated thumbnails are tracked in git and ship under the separate
-# `images` scope, which runs without this list.
+# hand. Excluding them is what keeps a deploy from treating the archive as
+# something deleted locally.
 **/*.jpg
 **/*.jpeg
+
+# ...but a file pattern only protects a file the sync actually considers, and
+# that is not the whole story. The sync also prunes any *directory* that is on
+# the server and not in the checkout, recursively, without consulting the list
+# above -- there is no file to match against, only a folder to remove.
+#
+# That is not hypothetical. Retiring the 8,036 per-photo pages emptied every
+# you/**/page-N/ and you/**/gallery/ folder of tracked files. On the runner they
+# then did not exist at all, so the first full deploy removed them from the
+# server and took 16,479 photographs with them. /galleries/ came through
+# untouched only because its folders still hold a tracked index.htm.
+#
+# Naming the directories keeps the sync out of them entirely. They hold nothing
+# but photographs now that the pages are retired, so there is nothing in them a
+# deploy should ever manage.
+you/**/gallery/**
+you/**/page-*/**
 
 # Superseded duplicate of you/2023. Nothing links into it and it is not in the
 # sitemap, so shipping its 1,788 files would only spend 148 MB of the App

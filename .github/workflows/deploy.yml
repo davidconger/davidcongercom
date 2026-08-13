@@ -127,6 +127,29 @@ jobs:
             echo 'EXCLUDE_EOF'
           } >> "$GITHUB_OUTPUT"
 
+      # The first full deploy removed 16,479 photographs, because excluding
+      # **/*.jpg protects a file the sync considers but not a directory it
+      # decides is gone. Retiring the per-photo pages left you/**/gallery/ and
+      # you/**/page-N/ with no tracked files, so the checkout had no such folders
+      # and the sync pruned them from the server, photographs and all.
+      #
+      # The directory patterns in deploy-exclude.txt are what stop that
+      # happening again, which makes them load-bearing rather than tidy-up. This
+      # refuses to deploy if they are ever dropped, since the damage is silent:
+      # the run goes green and the loss only shows up as broken images.
+      - name: Refuse to deploy if the archive is unprotected
+        if: ${{ inputs.scope == 'full' }}
+        run: |
+          missing=""
+          for pat in 'you/**/gallery/**' 'you/**/page-*/**' '**/*.jpg' '**/*.jpeg'; do
+            grep -qxF "$pat" .github/deploy-exclude.txt || missing="$missing $pat"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=Archive unprotected::deploy-exclude.txt is missing:$missing -- a full deploy would delete photographs. See the notes in that file."
+            exit 1
+          fi
+          echo "The photograph directories are excluded. A full deploy will leave them alone."
+
       # The publish profile states the FTP endpoint as a full URL --
       # ftps://waws-prod-xxx.ftp.azurewebsites.windows.net/site/wwwroot/ -- and
       # that is what anyone will paste into the secret, because it is what the
