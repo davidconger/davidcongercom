@@ -363,25 +363,27 @@ four `/you/` trees have since been uploaded and verified complete:
 | `you/2011` | 1,874 | **0** | done |
 | `you/2010` | 1,388 | **0** | done |
 | `you/2009` | 404 | **0** | done |
+| `galleries/2019` | 207 | **0** | done |
+| `galleries/2018` | 78 | **0** | done |
 | `you/2018` | 36 | **0** | done |
-| `galleries/2019` | 207 | 207 | 22 events, Sept–Oct |
-| `galleries/2018` | 78 | 78 | 7 events, November |
 | `galleries/2016` | 15 | 15 | entirely `06/test` + `06/test2` |
 | `galleries/2012` | 2 | 2 | entirely `06/test` |
 
-The `galleries/2016` and `galleries/2012` rows are the deliberately-404ed test
-galleries — 8 + 7 and 2 files, matching their gaps exactly. Leave them. **285
-photographs of real content remain**, all under `galleries/2018/11`,
-`galleries/2019/09` and `galleries/2019/10`.
+**The backlog is closed.** Re-probing the whole archive afterwards — 3,365
+folders, 41,069 photographs — returns exactly three gap folders, and all three
+are the deliberately-404ed test galleries: `galleries/2016/06/test` and `test2`
+hold 8 and 7 images and `galleries/2012/06/test` holds 2, matching their gaps
+exactly. Leave them. Every real photograph on the site is on the server.
 
 Run `sync-photos.js` per tree, dry first. `--dry-run` needs no credentials,
 since it decides what to send by asking the live site — which also means
 re-running costs nothing and resumes where it stopped.
 
 Worth re-probing after any bulk upload, and worth knowing that the folder-level
-probe above asks only whether a folder's *first* photograph is present, so a
-partly-uploaded folder does not show up in it. `sync-photos.js` checks every
-file and will catch those.
+probe asks only whether a folder's *first* photograph is present, so a
+partly-uploaded folder does not show up in it. That is why the true total came
+to roughly 3,900 files rather than the 2,153 the probe predicted.
+`sync-photos.js` checks every file and is the tool to trust.
 
 #### When to stop doing it this way
 
