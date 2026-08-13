@@ -347,48 +347,41 @@ Publishing an event is therefore: generate it with `tools/new-gallery.js`, run
 #### Known backlog: what the server has never held
 
 Converting `you_old/` into `/you/2009/`, `/you/2010/` and `/you/2011/` created 24
-events at addresses the server has never had photographs for. The pages were
-live; every image on them 404'd. Those four trees have now been uploaded:
-
-| Scope | Was missing | Still missing | |
-|---|---:|---:|---|
-| `you/2018` | 36 | 0 | done |
-| `you/2009` | 404 | 1 | 32 KiB boundary |
-| `you/2010` | 1,388 | 9 | 32 KiB boundary |
-| `you/2011` | 1,874 | 26 | 32 KiB boundary |
-
-The remainder are the files Azure's FTPS refuses deterministically; re-running
-each scope now sends them over Kudu instead. Re-run with `--dry-run` afterwards
-to confirm each tree reports 0 missing.
-
-That turned out not to be the whole of it. Eleven of the 193 frames in the
-homepage rotator were 404ing, and chasing why found the same fault in
-`/galleries/`: 27 events across two months are live, their index pages answer
-200, and not one of their photographs is on the server. Nothing about the site
+events at addresses the server had never held photographs for. The pages were
+live; every image on them 404'd. That turned out not to be the whole of it:
+eleven of the 193 frames in the homepage rotator were 404ing too, and chasing
+why found the same fault under `/galleries/` — events whose index pages answer
+200 with not one of their photographs on the server. Nothing about the site
 showed it, because a gallery page with broken images still looks like a page.
 
 Probing the first photograph of every folder that holds any — 3,358 folders,
-32,245 photographs — puts the real figure at **59 folders and 2,153
-photographs**:
+32,245 photographs — put the figure at 59 folders and 2,153 photographs. All
+four `/you/` trees have since been uploaded and verified complete:
 
-| Tree | Folders | Photographs | |
+| Tree | Was missing | Now | |
 |---|---:|---:|---|
-| `you/2011` | 10 | 937 | `you_old` conversion |
-| `you/2010` | 11 | 694 | `you_old` conversion |
-| `you/2009` | 3 | 202 | `you_old` conversion |
-| `galleries/2019` | 22 | 207 | never uploaded |
-| `galleries/2018` | 7 | 78 | never uploaded |
-| `you/2018` | 3 | 18 | never uploaded |
-| `galleries/2016` | 2 | 15 | mostly the deliberately-404ed test galleries |
-| `galleries/2012` | 1 | 2 | ditto |
+| `you/2011` | 1,874 | **0** | done |
+| `you/2010` | 1,388 | **0** | done |
+| `you/2009` | 404 | **0** | done |
+| `you/2018` | 36 | **0** | done |
+| `galleries/2019` | 207 | 207 | 22 events, Sept–Oct |
+| `galleries/2018` | 78 | 78 | 7 events, November |
+| `galleries/2016` | 15 | 15 | entirely `06/test` + `06/test2` |
+| `galleries/2012` | 2 | 2 | entirely `06/test` |
 
-Run `sync-photos.js` per tree, dry first. It decides what to send by asking the
-live site, so re-running costs nothing and resumes where it stopped.
+The `galleries/2016` and `galleries/2012` rows are the deliberately-404ed test
+galleries — 8 + 7 and 2 files, matching their gaps exactly. Leave them. **285
+photographs of real content remain**, all under `galleries/2018/11`,
+`galleries/2019/09` and `galleries/2019/10`.
 
-Worth re-probing after any bulk upload, and worth knowing that the count above
-is folder-level: it asks whether a folder's first photograph is present, so a
-folder that is only partly uploaded is not counted. `sync-photos.js` checks
-every file and will catch those.
+Run `sync-photos.js` per tree, dry first. `--dry-run` needs no credentials,
+since it decides what to send by asking the live site — which also means
+re-running costs nothing and resumes where it stopped.
+
+Worth re-probing after any bulk upload, and worth knowing that the folder-level
+probe above asks only whether a folder's *first* photograph is present, so a
+partly-uploaded folder does not show up in it. `sync-photos.js` checks every
+file and will catch those.
 
 #### When to stop doing it this way
 
