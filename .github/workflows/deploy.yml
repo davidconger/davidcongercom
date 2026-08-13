@@ -233,6 +233,31 @@ jobs:
           state-name: .ftp-deploy-${{ inputs.scope }}.json
           exclude: ${{ steps.excludes.outputs.list }}
 
+      # A dry run and a real deploy both finish green, and the summary page looks
+      # identical either way -- which is exactly how two "successful" runs can
+      # leave the site untouched and send you hunting for the bug somewhere else.
+      # This writes the distinction to the run summary, where it cannot be missed.
+      - name: Say plainly whether anything was written
+        if: ${{ always() }}
+        run: |
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            {
+              echo "## :mag: Dry run — nothing was written"
+              echo ""
+              echo "The list above is what **would** be sent for scope \`${{ inputs.scope }}\`."
+              echo "The server is unchanged, and the smoke test was skipped."
+              echo ""
+              echo "To publish, run the workflow again with **dry-run unchecked**."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning title=Dry run::Nothing was written. Re-run with dry-run unchecked to publish."
+          else
+            {
+              echo "## :rocket: Published — scope \`${{ inputs.scope }}\`"
+              echo ""
+              echo "The server was written to. The smoke test runs next, against the live site."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       # The deploy step reports success as soon as the last byte is written, which
       # says nothing about whether the site still works. This is the step that
       # would notice a site-wide 500, a redirect map that never loaded, or cache
