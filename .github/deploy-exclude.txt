@@ -48,6 +48,17 @@ web.config
 you/**/gallery/**
 you/**/page-*/**
 
+# The same trap, found by audit rather than by damage: these folders hold
+# photographs and contain no tracked file either, so the checkout has no such
+# directory and a deploy would prune them exactly as it pruned the two above.
+# They survived only because they are not under you/. Excluding them costs
+# nothing, since nothing tracked lives in any of them.
+galleries/store/**
+galleries/navigation/**
+galleries/2017/09/morrisdayandthetime/**
+tearsheets/images/**
+festivals/2016/**
+
 # Superseded duplicate of you/2023. Nothing links into it and it is not in the
 # sitemap, so shipping its 1,788 files would only spend 148 MB of the App
 # Service quota on unreachable copies.

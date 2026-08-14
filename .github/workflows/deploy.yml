@@ -114,13 +114,20 @@ jobs:
       # whole tree. The staged scopes have already been narrowed to exactly what
       # should ship, and applying the full list to them would be actively wrong:
       # `**/*.jpg` would filter out every last file of the images payload.
+      #
+      # `tr -d '\r'` is load-bearing. .gitattributes sets `* -text` so that twenty
+      # years of mixed-ending archive files round-trip byte for byte, which means
+      # this file arrives on a Linux runner with CRLF intact. Left alone, every
+      # pattern handed to the action would end in a carriage return and match
+      # nothing at all -- an exclude list that reads correctly and protects
+      # nothing.
       - name: Build the exclude list
         id: excludes
         run: |
           {
             echo 'list<<EXCLUDE_EOF'
             if [ "${{ inputs.scope }}" = "full" ]; then
-              grep -v '^\s*#' .github/deploy-exclude.txt | grep -v '^\s*$'
+              tr -d '\r' < .github/deploy-exclude.txt | grep -v '^\s*#' | grep -v '^\s*$'
             else
               printf '%s\n' '**/.git*' '**/.git*/**'
             fi
@@ -142,7 +149,7 @@ jobs:
         run: |
           missing=""
           for pat in 'you/**/gallery/**' 'you/**/page-*/**' '**/*.jpg' '**/*.jpeg'; do
-            grep -qxF "$pat" .github/deploy-exclude.txt || missing="$missing $pat"
+            tr -d '\r' < .github/deploy-exclude.txt | grep -qxF "$pat" || missing="$missing $pat"
           done
           if [ -n "$missing" ]; then
             echo "::error title=Archive unprotected::deploy-exclude.txt is missing:$missing -- a full deploy would delete photographs. See the notes in that file."
