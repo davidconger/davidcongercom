@@ -121,13 +121,25 @@ jobs:
       # pattern handed to the action would end in a carriage return and match
       # nothing at all -- an exclude list that reads correctly and protects
       # nothing.
+      #
+      # The awk line emits a second form of every directory pattern: `you/**/x/**`
+      # is also sent as `you/**/x/`. The action tests a folder by appending a
+      # slash to its name and matching that, so the folder record for
+      # `you/2009/e/gallery` is offered to the patterns as
+      # `you/2009/e/gallery/`. Today's multimatch matches that with the `/**`
+      # form, because a trailing globstar is allowed to match nothing -- verified
+      # against the exact version the action bundles. That is a subtlety of one
+      # matcher release, though, and the cost of it changing is the archive. The
+      # explicit folder form does not depend on it.
       - name: Build the exclude list
         id: excludes
         run: |
           {
             echo 'list<<EXCLUDE_EOF'
             if [ "${{ inputs.scope }}" = "full" ]; then
-              tr -d '\r' < .github/deploy-exclude.txt | grep -v '^\s*#' | grep -v '^\s*$'
+              tr -d '\r' < .github/deploy-exclude.txt \
+                | grep -v '^\s*#' | grep -v '^\s*$' \
+                | awk '{ print; if (sub(/\/\*\*$/, "/")) print }'
             else
               printf '%s\n' '**/.git*' '**/.git*/**'
             fi
