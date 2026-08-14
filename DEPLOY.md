@@ -239,6 +239,54 @@ eventually, no hurry.
 written in `web.config` and checks each one lands on a page that exists, and on
 a photograph that is really on it. Run it after any change to the rewrite rules.
 
+### Deleting those pages is what destroyed the archive
+
+Retiring them is also, indirectly, what deleted 16,479 photographs on 13 August.
+The mechanism is worth understanding, because nothing about it is obvious and it
+will apply again the next time files leave the source tree.
+
+The action does not look at the server to decide what to delete. It reads a
+state file it wrote on its last run — `.ftp-deploy-<scope>.json` — and treats
+anything listed there but missing from the checkout as deleted. A `full` deploy
+on 3 August recorded every `you/**/gallery/` and `you/**/page-N/` folder, because
+each still held tracked `.htm` pages. Retiring those pages emptied the folders of
+everything git knew about, so they stopped existing on the runner entirely. The
+next `full` deploy found them in the state file, missed them in the checkout, and
+issued a recursive `removeDir` on each. The photographs inside were never
+consulted; `**/*.jpg` protects a file the sync *evaluates*, and a folder being
+removed evaluates nothing.
+
+Three things guard against a repeat, and they are independent on purpose:
+
+1. **The directories are excluded**, in both forms the matcher understands —
+   `you/**/gallery/` matches the folder record itself, `you/**/gallery/**` its
+   contents. Verified by calling the action's own `applyExcludeFilter`.
+2. **A guard refuses a `full` deploy** whose exclude list has lost those
+   patterns.
+3. **The smoke test asks the live site for a photograph** from each folder shape,
+   and fails the run if either is gone. This is the one that does not depend on
+   understanding the mechanism, which is why it exists.
+
+### `reset-state`: making deletion impossible rather than unlikely
+
+The three guards above are checks. `reset-state` is different in kind — it
+removes deletion from the run altogether.
+
+Ticking it overwrites the server's baseline with an empty one before deploying.
+An empty baseline means the action believes the server holds nothing, so every
+difference is an upload and the delete list is empty by construction. No pattern
+has to be right.
+
+Use it whenever the checkout has lost files that a previous deploy recorded —
+after retiring pages, moving a directory, or restoring the site from a backup.
+The cost is that the run re-uploads rather than syncing, and that files the
+deploy *should* have removed stay on the server.
+
+**After restoring from an Azure backup, this is not optional.** The restore rolls
+the file system back, state file included, so the server's baseline is once again
+whatever it was at the snapshot — describing a tree that no longer matches the
+repository.
+
 ### New photographs
 
 The split is by what the image is for, not by its extension.

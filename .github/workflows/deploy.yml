@@ -33,6 +33,10 @@ on:
           - config-only
           - images
           - full
+      reset-state:
+        description: 'Reset the server baseline first, so this deploy cannot delete anything'
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-production
@@ -214,7 +218,7 @@ jobs:
       # data transfers work from a runner at all. curl uses the same passive FTPS
       # path; if it cannot write this file, the problem is the network or Azure
       # rather than the library, and no amount of retrying the action will help.
-      - name: Seed the sync state file if this scope has never run
+      - name: Seed or reset the sync state file
         if: ${{ !inputs.dry-run }}
         env:
           HOST: ${{ steps.ftp.outputs.host }}
@@ -225,6 +229,21 @@ jobs:
         run: |
           set -uo pipefail
           url="ftp://${HOST}${DIR}${STATE}"
+
+          # `reset-state` overwrites the baseline instead of reading it. An empty
+          # baseline means the action believes the server holds nothing, so every
+          # difference it finds is an upload and the delete list is empty by
+          # construction -- no pattern has to be correct for the archive to
+          # survive. That is the whole point: it removes deletion from the run
+          # rather than protecting against it.
+          #
+          # It is worth reaching for whenever the checkout has lost files the last
+          # deploy recorded. Retiring the 8,036 per-photo pages did exactly that,
+          # and the resulting delete list took 16,479 photographs with it.
+          if [ "${{ inputs.reset-state }}" = "true" ]; then
+            echo "reset-state was requested, so $STATE will be overwritten with an empty baseline."
+            echo "This deploy will upload what differs and delete nothing at all."
+          else
 
           # The action itself defaults to security: loose, so accepting an
           # unverified certificate here keeps one connection policy across the
@@ -241,6 +260,7 @@ jobs:
           fi
 
           echo "$STATE is not on the server, so this scope has never completed a deploy. Seeding it."
+          fi
           printf '%s' '{"description":"Seeded by the deploy workflow so that a first publish does not have to RETR a file that is not there. Safe to delete - the next deploy would simply resync.","version":"1.0.0","generatedTime":0,"data":[]}' > "$RUNNER_TEMP/seed.json"
 
           note=""
@@ -289,6 +309,12 @@ jobs:
               echo "The list above is what **would** be sent for scope \`${{ inputs.scope }}\`."
               echo "The server is unchanged, and the smoke test was skipped."
               echo ""
+              if [ "${{ inputs.reset-state }}" = "true" ]; then
+                echo "> **Note.** \`reset-state\` only takes effect on a real deploy, so the list above was"
+                echo "> still measured against the *existing* server baseline. Any deletions it shows are"
+                echo "> what would happen **without** the reset; with it, the delete list is empty."
+                echo ""
+              fi
               echo "To publish, run the workflow again with **dry-run unchecked**."
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::warning title=Dry run::Nothing was written. Re-run with dry-run unchecked to publish."
@@ -296,6 +322,10 @@ jobs:
             {
               echo "## :rocket: Published — scope \`${{ inputs.scope }}\`"
               echo ""
+              if [ "${{ inputs.reset-state }}" = "true" ]; then
+                echo "The server baseline was reset first, so this deploy could only add and overwrite. Nothing was deleted."
+                echo ""
+              fi
               echo "The server was written to. The smoke test runs next, against the live site."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
