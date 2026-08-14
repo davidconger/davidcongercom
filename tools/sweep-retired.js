@@ -119,7 +119,8 @@ function listRetired() {
   const redirect = await head(REDIRECT_PROBE);
   console.log('done');
   before.forEach((r, i) => console.log(`   photograph ${r.status}   ${CANARIES[i]}`));
-  console.log(`   retired URL ${redirect.status}${redirect.location ? ' -> ' + redirect.location : ''}   ${REDIRECT_PROBE}`);
+  console.log(`   retired URL ${redirect.status}   ${REDIRECT_PROBE}`);
+  if (redirect.location) console.log(`               -> ${redirect.location}`);
   if (before.some(r => r.status !== 200)) {
     console.error('\nA photograph is not being served. Fix that before deleting anything.');
     process.exit(1);
@@ -179,7 +180,8 @@ function listRetired() {
   const redirectAfter = await head(REDIRECT_PROBE);
   console.log('done');
   after.forEach((r, i) => console.log(`   photograph ${r.status}   ${CANARIES[i]}`));
-  console.log(`   retired URL ${redirectAfter.status}${redirectAfter.location ? ' -> ' + redirectAfter.location : ''}`);
+  console.log(`   retired URL ${redirectAfter.status}   ${REDIRECT_PROBE}`);
+  if (redirectAfter.location) console.log(`               -> ${redirectAfter.location}`);
 
   const lostPhoto = after.some(r => r.status !== 200);
   const lostRedirect = redirectAfter.status !== 301;
