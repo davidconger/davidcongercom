@@ -204,6 +204,28 @@ const CHECKS = [
       if (r.status !== 200) return 'status ' + r.status;
       const cc = r.headers['cache-control'] || '';
       return /max-age=\d{4,}/.test(cc) ? null : 'Cache-Control is "' + (cc || 'absent') + '"';
+    }],
+
+  // The archive is the one thing on this server that exists nowhere else in a
+  // deployable form, and the deploy has already destroyed part of it once: the
+  // sync prunes directories missing from the checkout, and the photographs live
+  // in directories git does not track. The check above did not notice, because
+  // it reads a /galleries/ photograph and the loss was under /you/.
+  //
+  // These name the two folder shapes that were emptied. They are deliberately
+  // not about markup or headers - they ask only whether the photographs are
+  // still there, so any future mechanism that removes them fails the deploy
+  // that did it, rather than surfacing as broken images days later.
+  ['photos-gallery', 'photographs under you/**/gallery/ are still served',
+    '/you/2009/jbb-tickets-on-sale/gallery/jbb-tickets-on-sale-01.jpg', r => {
+      if (r.status !== 200) return 'status ' + r.status + ' - the /you/ gallery/ photographs are missing from the server';
+      return Number(r.headers['content-length'] || 0) > 5000 ? null : 'served, but only ' + r.headers['content-length'] + ' bytes';
+    }],
+
+  ['photos-pages', 'photographs under you/**/page-N/ are still served',
+    '/you/2013/austin-mahone-at-seattle-childrens-hospital/page-1/austin-mahone-at-seattlechildrens-hospital-01.jpg', r => {
+      if (r.status !== 200) return 'status ' + r.status + ' - the /you/ page-N/ photographs are missing from the server';
+      return Number(r.headers['content-length'] || 0) > 5000 ? null : 'served, but only ' + r.headers['content-length'] + ' bytes';
     }]
 ];
 
