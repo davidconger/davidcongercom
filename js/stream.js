@@ -184,10 +184,23 @@
 		if (ticking === null) ticking = setInterval(tick, TICK_MS);
 	}
 
-	// Someone who has asked for less movement gets the page without any.
-	var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
-	var still = !!(calm && calm.matches);
-	if (!still) start();
+	/* The rotation used to stop entirely for anyone whose system asks for
+	   reduced motion. That turned out to catch people who never asked for it in
+	   any meaningful sense -- a remote desktop session disables animations as a
+	   matter of course, and every visitor on one got a homepage whose rotator
+	   sat on a single photograph.
+
+	   The preference is still honoured where it means what it says: the 560ms
+	   crossfade between slides is dropped in stream.css, so these visitors get
+	   an instant swap rather than an animated one. What they no longer get is a
+	   frozen page. Advancing a photograph is a change of content; the motion was
+	   the fade, and the fade is gone.
+
+	   The ways to stop it are unchanged and do not depend on the media query:
+	   hovering holds a show, focusing anything inside it holds it, a hidden tab
+	   stops the timer, and any deliberate use of a rotator holds that one for
+	   twenty seconds. */
+	start();
 
 	/* The home page builds its rotator from JSON after this file has already
 	   run, so it needs a way to say "there is a show now". Everything else --
@@ -195,7 +208,7 @@
 	   markup that did not exist at load; only the intersection observer and the
 	   ambient timer have to be told. */
 	window.dcStream = {
-		refresh: function () { if (!still) start(); }
+		refresh: function () { start(); }
 	};
 
 	/* ----------------------------------------------------------------------
