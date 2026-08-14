@@ -235,6 +235,21 @@ something the live site does not do.
 If they do linger, they are ~77 MB of files nothing can reach. Worth sweeping up
 eventually, no hurry.
 
+`tools/sweep-retired.js` is that sweep. It reads the exact list of files commit
+`2a76421fe` deleted straight back out of git rather than guessing at the server,
+checks every path against the three retired-page shapes before sending anything,
+and can delete nothing but `.htm` under `you/` even if that commit turns out to
+be wrong — which is the property that matters, because the archive is `.jpg`.
+
+It asks the live site for a photograph out of the affected folders before and
+after, and for a retired URL's 301, and stops if either changes. It is a dry run
+unless given `--delete`, and `--limit=5` proves the mechanism on five files
+before committing to eight thousand:
+
+    node tools/sweep-retired.js                       # what it would do
+    node tools/sweep-retired.js --delete --limit=5    # prove it on five
+    node tools/sweep-retired.js --delete              # the rest
+
 `tools/rewrite-sim.js` replays all 8,036 retired URLs through the rules as
 written in `web.config` and checks each one lands on a page that exists, and on
 a photograph that is really on it. Run it after any change to the rewrite rules.
