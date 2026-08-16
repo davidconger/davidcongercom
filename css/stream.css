@@ -1632,6 +1632,35 @@ main.prose.pageStream {
 	text-decoration: underline;
 	text-decoration-color: rgba(255, 255, 255, 0.75);
 }
+
+/* --------------------------------------------------------------------------
+   Homepage introduction
+
+   The reading column below the homepage rotator. It cannot be a <main> -- the
+   rotator already is one and a second would be invalid -- so it never matches
+   main.prose.pageStream above and has to restate the 760px measure itself.
+   Same reason the heading is restated: .prose.pageStream h2 is the small
+   uppercase label used between sections on about.htm, and this one heads the
+   whole column, so it wants the h1 treatment without taking the h1 away from
+   the site header.
+   -------------------------------------------------------------------------- */
+.homeIntro {
+	max-width: 760px;
+	margin-top: 6px;
+	padding-top: 26px;
+	padding-bottom: 4px;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prose.pageStream.homeIntro h2 {
+	margin: 0 0 16px;
+	font-size: 24px;
+	font-weight: 600;
+	letter-spacing: 0.3px;
+	text-transform: none;
+	color: #f2f2f2;
+}
+
 /* --------------------------------------------------------------------------
    Meet and greet pages (/you/)
 
