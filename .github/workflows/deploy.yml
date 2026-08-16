@@ -88,6 +88,28 @@ jobs:
       - name: Check for broken references
         run: node tools/check-links.js . --skip-ext jpg,jpeg --max-broken 90
 
+      # The source of this site is 46% comment by weight -- 58 KB across css/
+      # and js/ alone -- because the reasoning behind twenty years of layout
+      # decisions is written down beside the code that depends on it. That is
+      # worth keeping in git and worth nothing to a visitor, who downloads all
+      # of it. This is the ordinary source-versus-artifact split every build
+      # step makes; the site simply never had one.
+      #
+      # It runs here, on the runner's own checkout, so nothing leaves the
+      # repository. It also runs before the config-only payload is staged, so
+      # the 404 page is copied in already stripped.
+      #
+      # Safe against the failure this workflow is most afraid of: it only
+      # rewrites file CONTENTS and never adds, removes or renames a file. The
+      # sync decides what to delete from which files exist, so no exclude
+      # pattern and no photograph can be affected by anything it does.
+      #
+      # Expect one larger-than-usual run the first time. The action compares
+      # content to decide what to send, so every stylesheet, script and page
+      # changes once and is re-uploaded once.
+      - name: Strip maintenance comments from the published copy
+        run: node tools/strip-comments.js --write
+
       # web.config is the one file that can take the whole site down. Its rewrite
       # section has never run against real IIS, and if URL Rewrite were missing or
       # the 747-entry map were rejected, every page would answer 500. So the first
